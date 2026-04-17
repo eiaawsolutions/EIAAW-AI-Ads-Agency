@@ -18,7 +18,7 @@ export default function AuditPage() {
     <>
       <DashboardTopbar title="Audit" subtitle="ads-audit · 250 checks · score 78/100" />
       <main className="p-6">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="flex items-center justify-between px-5 py-3 hairline-b">
             <span className="eyebrow">Findings</span>
             <span className="mono text-xs text-muted-foreground tabular">{FINDINGS.length}</span>

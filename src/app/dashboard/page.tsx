@@ -1,21 +1,23 @@
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { PerformanceChart } from "@/components/dashboard/performance-chart";
+import { PerformanceChart, type PlatformSeriesRow } from "@/components/dashboard/performance-chart";
+import { PlatformChip, PlatformDot } from "@/components/platform/chip";
 
 export const metadata = { title: "Dashboard" };
 
-function genChart() {
+function genChart(): PlatformSeriesRow[] {
   return Array.from({ length: 30 }).map((_, i) => ({
     date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(5, 10),
-    roas: Number((2.2 + Math.random() * 2.6).toFixed(2)),
-    spend: Math.round(1500 + Math.random() * 2500),
+    meta: Number((3.2 + Math.random() * 1.6).toFixed(2)),
+    google: Number((2.8 + Math.random() * 1.4).toFixed(2)),
+    tiktok: Number((1.5 + Math.random() * 1.8).toFixed(2)),
   }));
 }
 
-const EXPERIMENTS = [
-  { n: "exp_17", title: "Headline: benefit vs proof",      platform: "Meta",    conf: 86, status: "running" },
-  { n: "exp_18", title: "CTA: Shop now vs Try risk-free",  platform: "Google",  conf: 62, status: "running" },
-  { n: "exp_19", title: "Audience: LAL 1% vs 3%",          platform: "TikTok",  conf: 44, status: "running" },
+const EXPERIMENTS: { n: string; title: string; platform: string; conf: number; status: "running" | "completed" }[] = [
+  { n: "exp_17", title: "Headline: benefit vs proof",      platform: "meta",    conf: 86, status: "running" },
+  { n: "exp_18", title: "CTA: Shop now vs Try risk-free",  platform: "google",  conf: 62, status: "running" },
+  { n: "exp_19", title: "Audience: LAL 1% vs 3%",          platform: "tiktok",  conf: 44, status: "running" },
 ];
 
 const RUNS: [string, string, string, string][] = [
@@ -33,30 +35,28 @@ export default function DashboardHome() {
     <>
       <DashboardTopbar title="Overview" subtitle="Aurora Skincare · Q2 Spring Launch" />
       <main className="p-6 space-y-6">
-        {/* Stats strip */}
+        {/* Stats strip with accent colors */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="ROAS · 30d" value="3.42×" delta={12.4} hint="Target 3.50×" accent />
-          <StatCard label="CPA · 30d" value="$21.80" delta={-6.1} hint="Target $22.00" />
+          <StatCard label="CPA · 30d" value="$21.80" delta={-6.1} hint="Target $22.00" tone="coral" />
           <StatCard label="Spend · 30d" value="$48,210" delta={3.2} hint="Pace $1,607/day" />
-          <StatCard label="Conversions · 30d" value="2,212" delta={9.7} hint="3 platforms" />
+          <StatCard label="Conversions · 30d" value="2,212" delta={9.7} hint="3 platforms" tone="lime" />
         </div>
 
         {/* Chart */}
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="flex items-center justify-between px-5 py-3 hairline-b">
             <div>
-              <span className="eyebrow">ROAS vs spend</span>
-              <p className="mt-0.5 text-2xs text-muted-foreground">Last 30 days · all platforms</p>
+              <span className="eyebrow">ROAS by platform</span>
+              <p className="mt-0.5 text-2xs text-muted-foreground">Last 30 days · multi-line</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="h-0.5 w-3 bg-primary" />
-                <span className="text-muted-foreground">ROAS</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs">
-                <span className="h-0.5 w-3 bg-muted-foreground" />
-                <span className="text-muted-foreground">Spend</span>
-              </div>
+              {(["meta", "google", "tiktok"] as const).map((p) => (
+                <div key={p} className="flex items-center gap-1.5 text-xs">
+                  <PlatformDot platform={p} />
+                  <span className="text-muted-foreground capitalize">{p}</span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="p-4">
@@ -66,7 +66,7 @@ export default function DashboardHome() {
 
         {/* Two-column: experiments + agent runs */}
         <div className="grid lg:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border overflow-hidden bg-card">
             <div className="flex items-center justify-between px-5 py-3 hairline-b">
               <span className="eyebrow">Active experiments</span>
               <span className="mono text-xs text-muted-foreground tabular">{EXPERIMENTS.length}</span>
@@ -75,12 +75,14 @@ export default function DashboardHome() {
               {EXPERIMENTS.map((e, i) => (
                 <div
                   key={e.n}
-                  className={`grid grid-cols-[80px_1fr_80px_60px] items-center gap-3 px-5 py-3 hover:bg-surface-1/50 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}
+                  className={`grid grid-cols-[80px_1fr_auto_60px] items-center gap-3 px-5 py-3 hover:bg-surface-1/60 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}
                 >
                   <span className="mono text-xs text-muted-foreground">{e.n}</span>
                   <div className="min-w-0">
                     <div className="text-sm text-foreground truncate">{e.title}</div>
-                    <div className="mono text-2xs text-muted-foreground">{e.platform}</div>
+                    <div className="mt-0.5">
+                      <PlatformChip platform={e.platform} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="status-dot text-primary" />
@@ -92,7 +94,7 @@ export default function DashboardHome() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border overflow-hidden bg-card">
             <div className="flex items-center justify-between px-5 py-3 hairline-b">
               <span className="eyebrow">Latest agent runs</span>
               <div className="flex items-center gap-1.5">
@@ -104,11 +106,11 @@ export default function DashboardHome() {
               {RUNS.map(([agent, status, time, note], i) => (
                 <div
                   key={i}
-                  className={`grid grid-cols-[130px_60px_40px_1fr] items-center gap-3 px-5 py-2.5 hover:bg-surface-1/50 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}
+                  className={`grid grid-cols-[130px_70px_40px_1fr] items-center gap-3 px-5 py-2.5 hover:bg-surface-1/60 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}
                 >
                   <span className="mono text-xs text-foreground">{agent}</span>
                   <span
-                    className={`mono text-2xs ${status === "running" ? "text-amber-400" : "text-primary"}`}
+                    className={`mono text-2xs ${status === "running" ? "text-amber-500" : "text-primary"}`}
                   >
                     {status}
                   </span>

@@ -50,7 +50,7 @@ export default function LivePage() {
     <>
       <DashboardTopbar title="Live monitor" subtitle="Real-time signal stream from every agent" />
       <main className="p-6">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="flex items-center justify-between px-5 py-3 hairline-b">
             <div className="flex items-center gap-3">
               <span className="live-dot" />
@@ -66,7 +66,12 @@ export default function LivePage() {
                 className="grid grid-cols-[90px_140px_40px_1fr] items-center gap-3 px-5 py-2 mono text-xs hover:bg-surface-1/50 transition-colors duration-150 fade-in"
               >
                 <span className="text-muted-foreground/60 tabular">{e.at}</span>
-                <span className="text-foreground/80">{e.agent}</span>
+                <span className={e.agent.startsWith("ads-meta") ? "pf-meta pf-text" :
+                                  e.agent.startsWith("ads-google") ? "pf-google pf-text" :
+                                  e.agent.startsWith("ads-tiktok") ? "pf-tiktok pf-text" :
+                                  "text-foreground/80"}>
+                  {e.agent}
+                </span>
                 <span
                   className={
                     e.level === "ok"

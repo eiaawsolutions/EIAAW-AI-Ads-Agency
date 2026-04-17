@@ -2,14 +2,15 @@ import Link from "next/link";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PlatformChip } from "@/components/platform/chip";
 import { Plus } from "lucide-react";
 
 export const metadata = { title: "Campaigns" };
 
 const CAMPAIGNS = [
-  { name: "Q2 Spring Launch",     status: "LIVE" as const,      platforms: ["Meta", "Google", "TikTok"], spent: 48210, budget: 75000,  roas: 3.42 },
-  { name: "Re-engagement flow",    status: "LIVE" as const,      platforms: ["Meta"],                     spent: 12400, budget: 20000,  roas: 4.80 },
-  { name: "Holiday prospecting",   status: "SCHEDULED" as const, platforms: ["Meta", "TikTok", "YouTube"], spent: 0,     budget: 120000, roas: 0 },
+  { name: "Q2 Spring Launch",   status: "LIVE" as const,      platforms: ["meta", "google", "tiktok"],  spent: 48210, budget: 75000,  roas: 3.42 },
+  { name: "Re-engagement flow", status: "LIVE" as const,      platforms: ["meta"],                      spent: 12400, budget: 20000,  roas: 4.80 },
+  { name: "Holiday prospecting",status: "SCHEDULED" as const, platforms: ["meta", "tiktok", "youtube"], spent: 0,     budget: 120000, roas: 0 },
 ];
 
 export default function CampaignsPage() {
@@ -22,7 +23,7 @@ export default function CampaignsPage() {
             <Link href="/onboarding"><Plus className="h-3.5 w-3.5" /> New campaign</Link>
           </Button>
         </div>
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="hairline-b">
@@ -35,12 +36,18 @@ export default function CampaignsPage() {
             </thead>
             <tbody>
               {CAMPAIGNS.map((c, i) => (
-                <tr key={c.name} className={`hover:bg-surface-1/50 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}>
+                <tr key={c.name} className={`hover:bg-surface-1/60 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}>
                   <td className="px-5 py-3.5 text-sm font-medium text-foreground">{c.name}</td>
                   <td className="px-5 py-3.5">
                     <Badge variant={c.status === "LIVE" ? "live" : "default"}>{c.status}</Badge>
                   </td>
-                  <td className="px-5 py-3.5 mono text-xs text-muted-foreground">{c.platforms.join(" · ")}</td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex flex-wrap gap-1">
+                      {c.platforms.map((p) => (
+                        <PlatformChip key={p} platform={p} />
+                      ))}
+                    </div>
+                  </td>
                   <td className="px-5 py-3.5 mono text-xs tabular text-right text-foreground/90">
                     ${c.spent.toLocaleString()} / ${c.budget.toLocaleString()}
                   </td>

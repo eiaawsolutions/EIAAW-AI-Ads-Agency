@@ -3,8 +3,9 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AgentTerminal } from "@/components/marketing/agent-terminal";
+import { PlatformChip } from "@/components/platform/chip";
 
-const PLATFORMS = ["Meta", "Google Ads", "TikTok", "LinkedIn", "Microsoft", "YouTube", "Apple Ads"];
+const PLATFORMS = ["meta", "google", "tiktok", "linkedin", "microsoft", "youtube", "apple"];
 
 const AGENTS_BY_CATEGORY = [
   { label: "Strategy", items: ["ads-dna", "ads-plan", "ads-create", "ads-math", "ads-budget"] },
@@ -38,8 +39,8 @@ export default function HomePage() {
   return (
     <main>
       {/* HERO — asymmetric: copy left, live terminal right */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none" />
+      <section className="relative overflow-hidden bg-dawn">
+        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
         <div className="container relative pt-20 pb-24 md:pt-28 md:pb-32">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
@@ -72,15 +73,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* LOGO STRIP */}
+      {/* LOGO STRIP — platform chips with brand colors */}
       <section className="hairline-t">
-        <div className="container py-10 flex items-center gap-8 flex-wrap">
+        <div className="container py-8 flex items-center gap-6 flex-wrap">
           <span className="eyebrow shrink-0">Integrated with</span>
-          <div className="flex flex-wrap gap-x-8 gap-y-2">
+          <div className="flex flex-wrap gap-2">
             {PLATFORMS.map((p) => (
-              <span key={p} className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
-                {p}
-              </span>
+              <PlatformChip key={p} platform={p} />
             ))}
           </div>
         </div>

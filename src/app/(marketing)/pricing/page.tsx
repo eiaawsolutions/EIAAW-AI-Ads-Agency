@@ -56,8 +56,8 @@ export const metadata = { title: "Pricing" };
 export default function PricingPage() {
   return (
     <main>
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+      <section className="relative overflow-hidden bg-dawn-subtle">
+        <div className="absolute inset-0 bg-grid opacity-25 pointer-events-none" />
         <div className="container relative pt-20 pb-16 md:pt-28">
           <span className="eyebrow">Pricing</span>
           <h1 className="mt-4 display text-4xl md:text-5xl lg:text-6xl text-balance max-w-3xl">

@@ -29,8 +29,8 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background grid place-items-center px-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+    <main className="min-h-screen bg-dawn grid place-items-center px-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none" />
       <div className="w-full max-w-sm relative">
         <Link href="/" className="inline-flex mb-12">
           <LogoWordmark />

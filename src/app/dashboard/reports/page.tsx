@@ -16,7 +16,7 @@ export default function ReportsPage() {
     <>
       <DashboardTopbar title="Reports" subtitle="Daily / weekly / monthly · AI-generated" />
       <main className="p-6">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           {REPORTS.map((r, i) => (
             <div key={r.name} className={`px-5 py-5 ${i > 0 ? "hairline-t" : ""}`}>
               <div className="flex items-start justify-between gap-4">

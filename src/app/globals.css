@@ -3,55 +3,50 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────
- * EIAAW — Linear-tier tokens
- * Near-monochrome. Teal used for signal only (status, active,
- * live data). Hairline borders. Tight typography. Minimal motion.
+ * EIAAW — "Dawn" palette
+ * Deep navy-teal base with warm accents. Linear-tier precision
+ * + Stripe-tier warmth. Per-platform brand colors on data.
  * ────────────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
-    /* Surfaces — true near-black, not blue-tinted */
-    --background: 0 0% 3.9%;           /* #0A0A0A */
-    --foreground: 0 0% 98%;            /* #FAFAFA */
-    --surface-1: 0 0% 7%;              /* #121212 card */
-    --surface-2: 0 0% 11%;              /* #1C1C1C raised */
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
-
-    /* Borders — 1px hairlines */
-    --border: 0 0% 15%;                /* #262626 */
-    --border-strong: 0 0% 20%;         /* #333333 */
-    --input: 0 0% 15%;
-    --ring: 172 79% 40%;
-
-    /* Muted text */
-    --muted: 0 0% 9%;
-    --muted-foreground: 240 3% 63%;    /* #A1A1AA */
-
-    /* Primary — teal signal */
-    --primary: 172 79% 40%;            /* #14B39B */
-    --primary-foreground: 0 0% 3.9%;
-
-    /* Secondary — subtle elevation */
-    --secondary: 0 0% 13%;
-    --secondary-foreground: 0 0% 98%;
-
-    /* Accents */
-    --accent: 0 0% 13%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62% 45%;
+    --background: 215 40% 7%;
+    --foreground: 210 40% 97%;
+    --surface-1: 218 38% 11%;
+    --surface-2: 219 35% 17%;
+    --card: 218 38% 11%;
+    --card-foreground: 210 40% 97%;
+    --popover: 218 38% 11%;
+    --popover-foreground: 210 40% 97%;
+    --border: 217 30% 21%;
+    --border-strong: 217 28% 28%;
+    --input: 217 30% 21%;
+    --ring: 172 72% 48%;
+    --muted: 218 38% 13%;
+    --muted-foreground: 217 20% 65%;
+    --primary: 172 72% 48%;
+    --primary-foreground: 215 40% 7%;
+    --secondary: 219 35% 17%;
+    --secondary-foreground: 210 40% 97%;
+    --accent: 219 35% 17%;
+    --accent-foreground: 210 40% 97%;
+    --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 98%;
+    --radius: 0.625rem;
 
-    --radius: 0.5rem;  /* 8px — tighter than before */
+    /* Platform brand colors */
+    --platform-meta:      217 89% 61%;
+    --platform-google:    142 71% 45%;
+    --platform-tiktok:    328 85% 57%;
+    --platform-linkedin:  206 100% 40%;
+    --platform-microsoft:  26 100% 55%;
+    --platform-youtube:     0 78% 55%;
+    --platform-apple:     210 10% 85%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -61,11 +56,12 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+    background-image:
+      radial-gradient(ellipse 1200px 600px at 50% -10%, hsl(172 72% 48% / 0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 800px 400px at 100% 20%, hsl(328 85% 57% / 0.025) 0%, transparent 50%);
+    background-attachment: fixed;
   }
-  ::selection {
-    @apply bg-brand-500/25 text-brand-50;
-  }
-  /* Remove all default focus rings — we use ring utilities explicitly */
+  ::selection { @apply bg-primary/25 text-foreground; }
   *:focus { outline: none; }
   *:focus-visible {
     outline: 1px solid hsl(var(--ring));
@@ -74,25 +70,21 @@
 }
 
 @layer components {
-  /* Hairline utilities — Linear's signature */
   .hairline-t { border-top: 1px solid hsl(var(--border)); }
   .hairline-b { border-bottom: 1px solid hsl(var(--border)); }
   .hairline-l { border-left: 1px solid hsl(var(--border)); }
   .hairline-r { border-right: 1px solid hsl(var(--border)); }
 
-  /* Monospace callout — for IDs, metrics, agent names */
   .mono {
     font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
     font-feature-settings: "zero", "ss01";
   }
 
-  /* Section label — small uppercase tag */
   .eyebrow {
     @apply text-[11px] font-medium uppercase text-muted-foreground;
     letter-spacing: 0.08em;
   }
 
-  /* Live indicator — teal dot with optional ping */
   .live-dot {
     position: relative;
     display: inline-block;
@@ -111,11 +103,10 @@
     animation: live-ping 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   }
   @keyframes live-ping {
-    0%, 100% { transform: scale(1); opacity: 0.25; }
+    0%, 100% { transform: scale(1); opacity: 0.35; }
     50% { transform: scale(2); opacity: 0; }
   }
 
-  /* Agent status dot */
   .status-dot {
     display: inline-block;
     width: 6px;
@@ -124,7 +115,6 @@
     background: currentColor;
   }
 
-  /* Linear-style subtle grid background — for hero/section dividers */
   .bg-grid {
     background-image:
       linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
@@ -133,19 +123,28 @@
     mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
   }
 
-  /* Numeric display — tabular figures for aligned metrics */
-  .tabular {
-    font-variant-numeric: tabular-nums;
+  .bg-dawn {
+    background:
+      radial-gradient(ellipse 900px 500px at 15% 10%, hsl(172 72% 48% / 0.18) 0%, transparent 55%),
+      radial-gradient(ellipse 700px 500px at 85% 25%, hsl(328 85% 57% / 0.14) 0%, transparent 50%),
+      radial-gradient(ellipse 800px 400px at 50% 90%, hsl(217 89% 61% / 0.10) 0%, transparent 55%),
+      hsl(var(--background));
   }
 
-  /* Display text — tight tracking at large sizes */
+  .bg-dawn-subtle {
+    background:
+      radial-gradient(ellipse 700px 300px at 50% 0%, hsl(172 72% 48% / 0.08) 0%, transparent 60%),
+      hsl(var(--background));
+  }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
   .display {
     letter-spacing: -0.03em;
     font-weight: 500;
     line-height: 1.05;
   }
 
-  /* Terminal/code block styling */
   .terminal {
     background: hsl(var(--surface-1));
     border: 1px solid hsl(var(--border));
@@ -155,12 +154,6 @@
     color: hsl(var(--foreground));
   }
 
-  /* Data cell — for dashboard tables */
-  .data-cell {
-    @apply mono tabular text-sm text-foreground/90;
-  }
-
-  /* Fade-in (single, subtle) */
   .fade-in {
     animation: fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -168,13 +161,51 @@
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Platform color utility — set --pf, then use pf-chip / pf-dot / pf-bar */
+  .pf-meta      { --pf: hsl(var(--platform-meta)); }
+  .pf-google    { --pf: hsl(var(--platform-google)); }
+  .pf-tiktok    { --pf: hsl(var(--platform-tiktok)); }
+  .pf-linkedin  { --pf: hsl(var(--platform-linkedin)); }
+  .pf-microsoft { --pf: hsl(var(--platform-microsoft)); }
+  .pf-youtube   { --pf: hsl(var(--platform-youtube)); }
+  .pf-apple     { --pf: hsl(var(--platform-apple)); }
+
+  .pf-chip {
+    color: var(--pf, hsl(var(--foreground)));
+    background: color-mix(in srgb, var(--pf, hsl(var(--foreground))) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pf, hsl(var(--foreground))) 30%, transparent);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pf-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--pf, hsl(var(--foreground)));
+    box-shadow: 0 0 10px 0 color-mix(in srgb, var(--pf) 50%, transparent);
+  }
+
+  .pf-bar {
+    background: linear-gradient(90deg, var(--pf) 0%, color-mix(in srgb, var(--pf) 55%, transparent) 100%);
+  }
+
+  .pf-text {
+    color: var(--pf, hsl(var(--foreground)));
+  }
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .text-pretty { text-wrap: pretty; }
 
-  /* Scrollbar — near-invisible, Linear-style */
   .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border-strong));

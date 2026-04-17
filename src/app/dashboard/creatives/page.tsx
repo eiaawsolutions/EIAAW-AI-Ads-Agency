@@ -22,11 +22,17 @@ export default function CreativesPage() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {CREATIVES.map((c) => (
-            <div key={c.id} className="rounded-lg border border-border overflow-hidden group">
+            <div key={c.id} className="rounded-lg border border-border overflow-hidden group bg-card">
               <div className="aspect-square bg-surface-2 relative overflow-hidden">
                 <div
                   className="absolute inset-0 transition-transform duration-250 group-hover:scale-[1.02]"
-                  style={{ background: `linear-gradient(135deg, hsl(0 0% 11%), hsl(172 79% 15%), hsl(0 0% 7%))` }}
+                  style={{
+                    background: [
+                      "radial-gradient(ellipse at 30% 20%, hsl(172 72% 48% / 0.45), transparent 60%)",
+                      "radial-gradient(ellipse at 80% 70%, hsl(328 85% 57% / 0.35), transparent 55%)",
+                      "linear-gradient(135deg, hsl(218 38% 11%), hsl(219 35% 17%))",
+                    ].join(","),
+                  }}
                 />
                 <div className="absolute top-2 right-2">
                   <Badge variant={c.freq > 2.5 ? "warn" : "outline"}>{c.style}</Badge>

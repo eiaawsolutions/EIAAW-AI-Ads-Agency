@@ -20,7 +20,7 @@ export default function AgentsPage() {
       <DashboardTopbar title="Agents" subtitle={`${agents.length} agents registered`} />
       <main className="p-6 space-y-6">
         {CATEGORY_ORDER.map((cat) => (
-          <div key={cat} className="rounded-lg border border-border overflow-hidden">
+          <div key={cat} className="rounded-lg border border-border overflow-hidden bg-card">
             <div className="flex items-center justify-between px-5 py-3 hairline-b">
               <span className="eyebrow">{CATEGORY_LABEL[cat]}</span>
               <span className="mono text-xs text-muted-foreground tabular">{byCat[cat]?.length ?? 0}</span>

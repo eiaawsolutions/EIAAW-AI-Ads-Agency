@@ -58,7 +58,7 @@ export function AgentTerminal() {
   }, [lines]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface-1">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-[0_20px_60px_-20px_hsl(172_72%_48%_/_0.15)]">
       {/* Terminal chrome */}
       <div className="flex items-center justify-between hairline-b px-4 py-2.5">
         <div className="flex items-center gap-3">
@@ -80,7 +80,18 @@ export function AgentTerminal() {
         {lines.map((l, i) => (
           <div key={i} className="fade-in grid grid-cols-[70px_130px_30px_1fr] gap-3 py-[3px] leading-relaxed">
             <span className="text-muted-foreground/60 tabular">{l.t}</span>
-            <span className="text-foreground/70">{l.agent}</span>
+            <span
+              className={
+                l.agent === "ads-meta"     ? "pf-meta pf-text" :
+                l.agent === "ads-google"   ? "pf-google pf-text" :
+                l.agent === "ads-tiktok"   ? "pf-tiktok pf-text" :
+                l.agent === "ads-linkedin" ? "pf-linkedin pf-text" :
+                l.agent === "ads-youtube"  ? "pf-youtube pf-text" :
+                "text-foreground/80"
+              }
+            >
+              {l.agent}
+            </span>
             <span
               className={
                 l.level === "ok"

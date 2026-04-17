@@ -1,58 +1,82 @@
 "use client";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { platformColor } from "@/lib/platforms";
 
-type Row = { date: string; roas: number; spend: number };
+export type PlatformSeriesRow = {
+  date: string;
+  meta: number;
+  google: number;
+  tiktok: number;
+};
 
-export function PerformanceChart({ data }: { data: Row[] }) {
+export function PerformanceChart({ data }: { data: PlatformSeriesRow[] }) {
   return (
-    <ResponsiveContainer width="100%" height={240}>
+    <ResponsiveContainer width="100%" height={260}>
       <AreaChart data={data} margin={{ left: -10, right: 8, top: 10, bottom: 0 }}>
         <defs>
-          <linearGradient id="roas" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#14B39B" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#14B39B" stopOpacity={0} />
-          </linearGradient>
+          {(["meta", "google", "tiktok"] as const).map((p) => (
+            <linearGradient key={p} id={`fill-${p}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={platformColor(p)} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={platformColor(p)} stopOpacity={0} />
+            </linearGradient>
+          ))}
         </defs>
-        <CartesianGrid stroke="hsl(0 0% 15%)" strokeDasharray="0" vertical={false} />
+        <CartesianGrid stroke="hsl(217 30% 21%)" strokeDasharray="0" vertical={false} />
         <XAxis
           dataKey="date"
-          stroke="hsl(240 3% 63%)"
+          stroke="hsl(217 20% 65%)"
           fontSize={11}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
-          yAxisId="left"
-          stroke="hsl(240 3% 63%)"
+          stroke="hsl(217 20% 65%)"
           fontSize={11}
           tickLine={false}
           axisLine={false}
-          width={40}
-        />
-        <YAxis
-          yAxisId="right"
-          orientation="right"
-          stroke="hsl(240 3% 63%)"
-          fontSize={11}
-          tickLine={false}
-          axisLine={false}
-          width={50}
+          width={44}
+          tickFormatter={(v) => `${v.toFixed(1)}×`}
         />
         <Tooltip
           contentStyle={{
-            background: "hsl(0 0% 7%)",
-            border: "1px solid hsl(0 0% 15%)",
-            borderRadius: 6,
+            background: "hsl(218 38% 11%)",
+            border: "1px solid hsl(217 30% 21%)",
+            borderRadius: 8,
             fontSize: 12,
             padding: "8px 12px",
           }}
-          labelStyle={{ color: "hsl(240 3% 63%)", fontSize: 11, marginBottom: 4 }}
-          itemStyle={{ color: "hsl(0 0% 98%)" }}
-          cursor={{ stroke: "hsl(0 0% 20%)", strokeWidth: 1 }}
+          labelStyle={{ color: "hsl(217 20% 65%)", fontSize: 11, marginBottom: 4 }}
+          itemStyle={{ color: "hsl(210 40% 97%)" }}
+          cursor={{ stroke: "hsl(217 28% 28%)", strokeWidth: 1 }}
         />
-        <Area yAxisId="left" type="monotone" dataKey="roas" stroke="#14B39B" strokeWidth={1.5} fill="url(#roas)" />
-        <Area yAxisId="right" type="monotone" dataKey="spend" stroke="hsl(240 3% 63%)" strokeWidth={1} fill="transparent" />
+        <Legend
+          wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+          iconType="circle"
+          iconSize={6}
+          formatter={(v) => <span style={{ color: "hsl(217 20% 65%)", textTransform: "capitalize" }}>{v}</span>}
+        />
+        <Area
+          type="monotone"
+          dataKey="meta"
+          stroke={platformColor("meta")}
+          strokeWidth={1.5}
+          fill="url(#fill-meta)"
+        />
+        <Area
+          type="monotone"
+          dataKey="google"
+          stroke={platformColor("google")}
+          strokeWidth={1.5}
+          fill="url(#fill-google)"
+        />
+        <Area
+          type="monotone"
+          dataKey="tiktok"
+          stroke={platformColor("tiktok")}
+          strokeWidth={1.5}
+          fill="url(#fill-tiktok)"
+        />
       </AreaChart>
     </ResponsiveContainer>
   );

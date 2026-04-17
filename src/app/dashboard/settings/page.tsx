@@ -18,7 +18,7 @@ export default function SettingsPage() {
       <DashboardTopbar title="Settings" subtitle="Organization · billing · execution mode" />
       <main className="p-6 space-y-6 max-w-2xl">
         {/* Organization */}
-        <section className="rounded-lg border border-border overflow-hidden">
+        <section className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="px-5 py-3 hairline-b">
             <span className="eyebrow">Organization</span>
           </div>
@@ -36,7 +36,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Execution mode */}
-        <section className="rounded-lg border border-border overflow-hidden">
+        <section className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="px-5 py-3 hairline-b">
             <span className="eyebrow">Execution mode</span>
           </div>
@@ -56,7 +56,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Subscription */}
-        <section className="rounded-lg border border-border overflow-hidden">
+        <section className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="flex items-center justify-between px-5 py-3 hairline-b">
             <span className="eyebrow">Subscription</span>
             <Badge variant="live">Active</Badge>

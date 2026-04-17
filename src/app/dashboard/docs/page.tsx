@@ -18,7 +18,7 @@ export default function DocsPage() {
     <>
       <DashboardTopbar title="Docs" subtitle="How EIAAW works, end to end" />
       <main className="p-6">
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           {SECTIONS.map((s, i) => (
             <Link
               key={s.n}

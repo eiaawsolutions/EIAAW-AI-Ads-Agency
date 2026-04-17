@@ -1,5 +1,6 @@
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { PlatformChip } from "@/components/platform/chip";
 import { db } from "@/lib/db";
 
 export const metadata = { title: "Performance" };
@@ -23,12 +24,12 @@ export default async function PerformancePage() {
       <main className="p-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard label="Revenue" value="$164,892" delta={18.2} accent />
-          <StatCard label="ROAS" value="3.42×" delta={12.4} />
+          <StatCard label="ROAS" value="3.42×" delta={12.4} tone="lime" />
           <StatCard label="CPM" value="$12.40" delta={-2.1} />
-          <StatCard label="CTR" value="1.48%" delta={0.6} />
+          <StatCard label="CTR" value="1.48%" delta={0.6} tone="coral" />
         </div>
 
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="flex items-center justify-between px-5 py-3 hairline-b">
             <span className="eyebrow">Platform breakdown</span>
             <div className="flex items-center gap-1.5">
@@ -62,14 +63,28 @@ export default async function PerformancePage() {
                     const rev = (m._sum.revenue ?? 0) / 100;
                     const roas = rev / Math.max(spend, 1);
                     return (
-                      <tr key={m.platform} className="hairline-t hover:bg-surface-1/50 transition-colors duration-150">
-                        <td className="px-5 py-3 text-sm font-medium text-foreground">{m.platform}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">{(m._sum.impressions ?? 0).toLocaleString()}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">{(m._sum.clicks ?? 0).toLocaleString()}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">{(m._sum.conversions ?? 0).toLocaleString()}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">${spend.toLocaleString()}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">${rev.toLocaleString()}</td>
-                        <td className="px-5 py-3 mono text-xs tabular text-right text-primary">{roas.toFixed(2)}×</td>
+                      <tr key={m.platform} className="hairline-t hover:bg-surface-1/60 transition-colors duration-150">
+                        <td className="px-5 py-3">
+                          <PlatformChip platform={m.platform} />
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
+                          {(m._sum.impressions ?? 0).toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
+                          {(m._sum.clicks ?? 0).toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
+                          {(m._sum.conversions ?? 0).toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
+                          ${spend.toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
+                          ${rev.toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 mono text-xs tabular text-right text-primary">
+                          {roas.toFixed(2)}×
+                        </td>
                       </tr>
                     );
                   })
