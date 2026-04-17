@@ -4,29 +4,38 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-150 ease-out disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3.5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-[0_6px_24px_-6px_rgba(20,179,155,0.5)]",
+        // Primary — solid teal, used sparingly
+        default: "bg-primary text-primary-foreground hover:bg-brand-400 rounded-md",
+        // Secondary — default CTA. Near-white with hairline border
         secondary:
-          "bg-white/5 text-foreground border border-white/10 hover:bg-white/10",
-        ghost: "hover:bg-white/5 text-foreground",
-        outline: "border border-brand-500/40 text-brand-200 hover:bg-brand-500/10",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        gradient:
-          "bg-brand-gradient text-ink-950 hover:brightness-110 shadow-[0_10px_40px_-10px_rgba(47,203,179,0.55)]",
-        link: "text-brand-300 underline-offset-4 hover:underline",
+          "bg-white text-background hover:bg-white/90 rounded-md",
+        // Subtle — surface with border
+        subtle:
+          "bg-surface-1 text-foreground border border-border hover:bg-surface-2 hover:border-border-strong rounded-md",
+        // Ghost — transparent, text-only
+        ghost: "text-foreground hover:bg-surface-1 rounded-md",
+        // Outline — just border
+        outline:
+          "border border-border text-foreground hover:border-border-strong hover:bg-surface-1 rounded-md",
+        // Destructive
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-md",
+        // Link
+        link: "text-foreground hover:text-muted-foreground underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-5",
-        sm: "h-9 px-4 text-xs",
-        lg: "h-12 px-7 text-base",
-        icon: "h-10 w-10",
+        default: "h-8 px-3 text-sm",
+        sm: "h-7 px-2.5 text-xs",
+        lg: "h-10 px-4 text-sm",
+        xl: "h-12 px-6 text-base",
+        icon: "h-8 w-8",
       },
     },
-    defaultVariants: { variant: "default", size: "default" },
+    defaultVariants: { variant: "secondary", size: "default" },
   },
 );
 

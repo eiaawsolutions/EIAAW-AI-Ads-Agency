@@ -1,27 +1,33 @@
 import Link from "next/link";
 import { LogoWordmark } from "@/components/brand/logo";
 
+const COLS: { title: string; links: [string, string][] }[] = [
+  { title: "Platform", links: [["Agents", "/agents"], ["Integrations", "/integrations"], ["Pricing", "/pricing"], ["Changelog", "/changelog"]] },
+  { title: "Company", links: [["About", "/about"], ["Customers", "/customers"], ["Careers", "/careers"], ["Contact", "/contact"]] },
+  { title: "Resources", links: [["Docs", "/docs"], ["API", "/api"], ["Status", "/status"], ["Brand", "/brand"]] },
+  { title: "Legal", links: [["Privacy", "/legal/privacy"], ["Terms", "/legal/terms"], ["DPA", "/legal/dpa"], ["Security", "/legal/security"]] },
+];
+
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-white/5 mt-24">
-      <div className="container py-16 grid grid-cols-2 md:grid-cols-5 gap-10">
-        <div className="col-span-2">
+    <footer className="hairline-t mt-32">
+      <div className="container grid grid-cols-2 md:grid-cols-6 gap-8 py-16">
+        <div className="col-span-2 md:col-span-2">
           <LogoWordmark />
-          <p className="mt-4 text-sm text-muted-foreground max-w-sm">
-            A multi-agent AI organization for performance advertising. Predictive, multi-platform, experiment-native.
+          <p className="mt-4 text-xs text-muted-foreground max-w-xs leading-relaxed">
+            AI · Human Partnerships for performance advertising. Predictive, multi-platform, experiment-native.
           </p>
         </div>
-        {[
-          { title: "Platform", links: [["Agents", "/agents"], ["Integrations", "/integrations"], ["Pricing", "/pricing"], ["Changelog", "/changelog"]] },
-          { title: "Company", links: [["About", "/about"], ["Customers", "/customers"], ["Careers", "/careers"], ["Contact", "/contact"]] },
-          { title: "Legal", links: [["Privacy", "/legal/privacy"], ["Terms", "/legal/terms"], ["DPA", "/legal/dpa"], ["Security", "/legal/security"]] },
-        ].map((col) => (
+        {COLS.map((col) => (
           <div key={col.title}>
-            <h4 className="mono-tag mb-4">{col.title}</h4>
+            <h4 className="eyebrow mb-3">{col.title}</h4>
             <ul className="space-y-2">
               {col.links.map(([label, href]) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href={href}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-150"
+                  >
                     {label}
                   </Link>
                 </li>
@@ -30,10 +36,13 @@ export function MarketingFooter() {
           </div>
         ))}
       </div>
-      <div className="border-t border-white/5">
-        <div className="container py-6 flex items-center justify-between text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} EIAAW Solutions. All rights reserved.</span>
-          <span className="font-mono">build · {new Date().toISOString().slice(0, 10)}</span>
+      <div className="hairline-t">
+        <div className="container flex items-center justify-between py-5 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} EIAAW Solutions</span>
+          <div className="flex items-center gap-2">
+            <span className="live-dot" />
+            <span className="mono">All systems operational</span>
+          </div>
         </div>
       </div>
     </footer>

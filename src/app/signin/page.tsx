@@ -29,42 +29,51 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="min-h-screen bg-hero grid place-items-center px-6">
-      <div className="w-full max-w-md">
-        <Link href="/" className="inline-flex"><LogoWordmark /></Link>
-        <div className="mt-10 glass rounded-2xl p-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Sign in to EIAAW</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Use any email for the demo. In production this page uses Google OAuth and passwordless magic links.
-          </p>
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Work email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full" variant="gradient" disabled={loading}>
-              {loading ? "Signing in…" : "Continue"}
-            </Button>
-          </form>
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-white/5" />
-            <span className="mono-tag">or</span>
-            <span className="h-px flex-1 bg-white/5" />
+    <main className="min-h-screen bg-background grid place-items-center px-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-grid opacity-30 pointer-events-none" />
+      <div className="w-full max-w-sm relative">
+        <Link href="/" className="inline-flex mb-12">
+          <LogoWordmark />
+        </Link>
+
+        <h1 className="display text-3xl text-foreground">Sign in</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Welcome back. Any email works for the beta — in production this page uses Google OIDC and passwordless magic links.
+        </p>
+
+        <form onSubmit={onSubmit} className="mt-10 space-y-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              required
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-          <Button variant="secondary" className="w-full" onClick={() => signIn("google")}>
-            Continue with Google
+          <Button type="submit" className="w-full" variant="secondary" disabled={loading}>
+            {loading ? "Signing in…" : "Continue with email"}
           </Button>
-          <p className="mt-6 text-xs text-muted-foreground text-center">
-            No account? <Link href="/onboarding" className="text-brand-300 hover:underline">Start a free trial</Link>.
-          </p>
+        </form>
+
+        <div className="my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" />
+          <span className="eyebrow">or</span>
+          <span className="h-px flex-1 bg-border" />
         </div>
+
+        <Button variant="subtle" className="w-full" onClick={() => signIn("google")}>
+          Continue with Google
+        </Button>
+
+        <p className="mt-8 text-xs text-muted-foreground text-center">
+          New to EIAAW?{" "}
+          <Link href="/onboarding" className="text-foreground hover:underline">
+            Start a free trial
+          </Link>
+        </p>
       </div>
     </main>
   );

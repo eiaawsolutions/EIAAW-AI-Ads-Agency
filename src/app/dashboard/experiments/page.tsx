@@ -1,5 +1,4 @@
 import { DashboardTopbar } from "@/components/dashboard/topbar";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -8,48 +7,47 @@ import { Plus } from "lucide-react";
 export const metadata = { title: "Experiments" };
 
 const EXPERIMENTS = [
-  { name: "Headline: benefit vs. proof", kind: "headline", status: "running", conf: 86, platform: "Meta", variants: ["A: Benefit", "B: Proof"] },
-  { name: "CTA: Shop now vs. Try risk-free", kind: "cta", status: "running", conf: 62, platform: "Google", variants: ["A: Shop now", "B: Try risk-free"] },
-  { name: "Audience: LAL 1% vs 3%", kind: "audience", status: "running", conf: 44, platform: "TikTok", variants: ["A: 1%", "B: 3%"] },
-  { name: "Creative: UGC vs. studio", kind: "creative", status: "completed", conf: 98, platform: "Meta", variants: ["A: UGC", "B: Studio"] },
+  { id: "exp_17", name: "Headline: benefit vs proof",   kind: "headline",  status: "running" as const,   conf: 86, platform: "Meta",    variants: ["A: Benefit", "B: Proof"] },
+  { id: "exp_18", name: "CTA: Shop now vs Try risk-free", kind: "cta",     status: "running" as const,   conf: 62, platform: "Google",  variants: ["A: Shop now", "B: Try risk-free"] },
+  { id: "exp_19", name: "Audience: LAL 1% vs 3%",       kind: "audience",  status: "running" as const,   conf: 44, platform: "TikTok",  variants: ["A: 1%", "B: 3%"] },
+  { id: "exp_15", name: "Creative: UGC vs studio",       kind: "creative", status: "completed" as const, conf: 98, platform: "Meta",    variants: ["A: UGC (winner)", "B: Studio"] },
 ];
 
 export default function ExperimentsPage() {
   return (
     <>
       <DashboardTopbar title="Experiments" subtitle="ads-test · closed-loop learning" />
-      <main className="p-8 space-y-6">
+      <main className="p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Running & recent</h2>
-            <p className="text-xs text-muted-foreground">Every creative ships inside a designed experiment.</p>
-          </div>
-          <Button variant="gradient"><Plus /> New experiment</Button>
+          <span className="eyebrow">Running & recent</span>
+          <Button variant="secondary"><Plus className="h-3.5 w-3.5" /> New experiment</Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {EXPERIMENTS.map((e) => (
-            <Card key={e.name} className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <Badge variant={e.status === "running" ? "live" : "default"}>{e.status}</Badge>
-                <span className="font-mono text-[10px] text-muted-foreground">{e.platform} · {e.kind}</span>
+        <div className="rounded-lg border border-border overflow-hidden">
+          {EXPERIMENTS.map((e, i) => (
+            <div key={e.id} className={`p-5 ${i > 0 ? "hairline-t" : ""}`}>
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="mono text-xs text-muted-foreground shrink-0">{e.id}</span>
+                  <span className="text-sm font-medium text-foreground truncate">{e.name}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={e.status === "running" ? "live" : "solid"}>{e.status}</Badge>
+                  <span className="mono text-2xs text-muted-foreground">{e.platform} · {e.kind}</span>
+                </div>
               </div>
-              <h3 className="text-base font-semibold">{e.name}</h3>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 mb-3">
                 {e.variants.map((v) => (
-                  <span key={v} className="font-mono text-[11px] px-2.5 py-1 rounded-md bg-white/[0.03] border border-white/5 text-brand-200">
+                  <span key={v} className="mono text-2xs px-2 py-1 rounded border border-border bg-surface-1 text-foreground">
                     {v}
                   </span>
                 ))}
               </div>
-              <div className="mt-5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="mono-tag">Confidence</span>
-                  <span className="font-mono text-xs text-brand-300">{e.conf}%</span>
-                </div>
-                <Progress value={e.conf} />
+              <div className="flex items-center gap-3">
+                <Progress value={e.conf} className="flex-1" />
+                <span className="mono text-xs text-primary tabular shrink-0 w-12 text-right">{e.conf}%</span>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       </main>

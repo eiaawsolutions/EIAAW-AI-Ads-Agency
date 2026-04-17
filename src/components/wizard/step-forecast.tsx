@@ -2,8 +2,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { useWizard } from "./wizard-store";
@@ -41,56 +39,51 @@ export function StepForecast() {
 
   return (
     <div>
-      <Badge>Step 04 · ads-math</Badge>
-      <h1 className="mt-4 text-4xl font-semibold tracking-tight">Before you spend — the forecast.</h1>
-      <p className="mt-2 text-muted-foreground">
+      <span className="eyebrow">Step 04 · ads-math</span>
+      <h1 className="mt-3 display text-3xl md:text-4xl">Before you spend — the forecast.</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
         Three scenarios based on category benchmarks, your budget, and expected conversion behavior.
       </p>
 
       {loading || !scenarios ? (
-        <div className="mt-10 flex items-center gap-3 text-muted-foreground">
-          <Loader2 className="animate-spin" /> Running ads-math…
+        <div className="mt-10 flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Running ads-math
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-10 rounded-lg border border-border overflow-hidden fade-in">
+          <div className="grid grid-cols-[120px_1fr_1fr_100px_100px] px-5 py-3 hairline-b bg-surface-1">
+            <span className="eyebrow">Scenario</span>
+            <span className="eyebrow">Spend</span>
+            <span className="eyebrow">Revenue</span>
+            <span className="eyebrow text-right">ROAS</span>
+            <span className="eyebrow text-right">CPA</span>
+          </div>
           {scenarios.map((s) => (
-            <Card key={s.label} className={`p-6 ${s.label === "Moderate" ? "glow border-brand-500/30" : ""}`}>
-              <div className="flex items-center justify-between">
-                <span className="mono-tag">{s.label}</span>
-                {s.label === "Moderate" && <Badge>Recommended</Badge>}
-              </div>
-              <div className="mt-6">
-                <div className="mono-tag">Spend</div>
-                <div className="text-2xl font-semibold">{formatCurrency(s.spend * 100)}</div>
-              </div>
-              <div className="mt-4">
-                <div className="mono-tag">Projected revenue</div>
-                <div className="text-3xl font-semibold text-gradient">{formatCurrency(s.revenue * 100)}</div>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <div className="mono-tag">ROAS</div>
-                  <div className="mt-0.5 font-mono">{s.roas.toFixed(2)}×</div>
-                </div>
-                <div>
-                  <div className="mono-tag">CPA</div>
-                  <div className="mt-0.5 font-mono">${s.cpa.toFixed(2)}</div>
-                </div>
-              </div>
-            </Card>
+            <div
+              key={s.label}
+              className={`grid grid-cols-[120px_1fr_1fr_100px_100px] items-center px-5 py-4 hairline-t first:border-t-0 ${s.label === "Moderate" ? "bg-primary/5" : ""}`}
+            >
+              <span className="text-sm font-medium text-foreground">{s.label}</span>
+              <span className="mono text-sm text-foreground tabular">{formatCurrency(s.spend * 100)}</span>
+              <span className="mono text-sm text-primary tabular">{formatCurrency(s.revenue * 100)}</span>
+              <span className="mono text-sm text-foreground tabular text-right">{s.roas.toFixed(2)}×</span>
+              <span className="mono text-sm text-foreground tabular text-right">${s.cpa.toFixed(0)}</span>
+            </div>
           ))}
         </div>
       )}
 
-      <p className="mt-8 text-xs text-muted-foreground max-w-2xl">
-        * Forecast is based on industry benchmarks and your inputs. Actuals depend on creative quality,
-        offer fit, seasonality, and platform auction dynamics. Not a performance guarantee.
+      <p className="mt-6 text-2xs text-muted-foreground max-w-xl leading-relaxed">
+        Forecast is based on industry benchmarks and your inputs. Actuals depend on creative quality, offer fit,
+        seasonality, and platform auction dynamics. Not a performance guarantee.
       </p>
 
       <div className="mt-10 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setStep("competitor")}><ArrowLeft /> Back</Button>
-        <Button variant="gradient" disabled={!scenarios} onClick={() => setStep("launch")}>
-          Continue to launch <ArrowRight />
+        <Button variant="ghost" onClick={() => setStep("competitor")}>
+          <ArrowLeft /> Back
+        </Button>
+        <Button variant="secondary" disabled={!scenarios} onClick={() => setStep("launch")}>
+          Continue <ArrowRight />
         </Button>
       </div>
     </div>

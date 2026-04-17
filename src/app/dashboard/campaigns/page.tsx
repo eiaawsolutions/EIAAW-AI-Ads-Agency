@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -8,43 +7,51 @@ import { Plus } from "lucide-react";
 export const metadata = { title: "Campaigns" };
 
 const CAMPAIGNS = [
-  { name: "Q2 Spring Launch", status: "LIVE", platforms: ["Meta", "Google", "TikTok"], spent: 48210, budget: 75000, roas: 3.42 },
-  { name: "Re-engagement flow", status: "LIVE", platforms: ["Meta"], spent: 12400, budget: 20000, roas: 4.8 },
-  { name: "Holiday prospecting", status: "SCHEDULED", platforms: ["Meta", "TikTok", "YouTube"], spent: 0, budget: 120000, roas: 0 },
+  { name: "Q2 Spring Launch",     status: "LIVE" as const,      platforms: ["Meta", "Google", "TikTok"], spent: 48210, budget: 75000,  roas: 3.42 },
+  { name: "Re-engagement flow",    status: "LIVE" as const,      platforms: ["Meta"],                     spent: 12400, budget: 20000,  roas: 4.80 },
+  { name: "Holiday prospecting",   status: "SCHEDULED" as const, platforms: ["Meta", "TikTok", "YouTube"], spent: 0,     budget: 120000, roas: 0 },
 ];
 
 export default function CampaignsPage() {
   return (
     <>
       <DashboardTopbar title="Campaigns" subtitle={`${CAMPAIGNS.length} total · 2 live`} />
-      <main className="p-8 space-y-6">
+      <main className="p-6 space-y-6">
         <div className="flex justify-end">
-          <Button asChild variant="gradient"><Link href="/onboarding"><Plus /> New campaign</Link></Button>
+          <Button asChild variant="secondary">
+            <Link href="/onboarding"><Plus className="h-3.5 w-3.5" /> New campaign</Link>
+          </Button>
         </div>
-        <Card className="p-0 overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground border-b border-white/5">
-                <th className="px-5 py-4">Campaign</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4">Platforms</th>
-                <th className="px-5 py-4">Spent / Budget</th>
-                <th className="px-5 py-4">ROAS</th>
+              <tr className="hairline-b">
+                <th className="text-left eyebrow px-5 py-2.5">Campaign</th>
+                <th className="text-left eyebrow px-5 py-2.5">Status</th>
+                <th className="text-left eyebrow px-5 py-2.5">Platforms</th>
+                <th className="text-right eyebrow px-5 py-2.5">Spent / Budget</th>
+                <th className="text-right eyebrow px-5 py-2.5">ROAS</th>
               </tr>
             </thead>
             <tbody>
-              {CAMPAIGNS.map((c) => (
-                <tr key={c.name} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
-                  <td className="px-5 py-4 font-medium">{c.name}</td>
-                  <td className="px-5 py-4"><Badge variant={c.status === "LIVE" ? "live" : "outline"}>{c.status}</Badge></td>
-                  <td className="px-5 py-4 font-mono text-xs text-brand-300">{c.platforms.join(" · ")}</td>
-                  <td className="px-5 py-4 font-mono text-xs">${c.spent.toLocaleString()} / ${c.budget.toLocaleString()}</td>
-                  <td className="px-5 py-4 font-mono text-xs text-brand-300">{c.roas > 0 ? c.roas.toFixed(2) + "×" : "—"}</td>
+              {CAMPAIGNS.map((c, i) => (
+                <tr key={c.name} className={`hover:bg-surface-1/50 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}>
+                  <td className="px-5 py-3.5 text-sm font-medium text-foreground">{c.name}</td>
+                  <td className="px-5 py-3.5">
+                    <Badge variant={c.status === "LIVE" ? "live" : "default"}>{c.status}</Badge>
+                  </td>
+                  <td className="px-5 py-3.5 mono text-xs text-muted-foreground">{c.platforms.join(" · ")}</td>
+                  <td className="px-5 py-3.5 mono text-xs tabular text-right text-foreground/90">
+                    ${c.spent.toLocaleString()} / ${c.budget.toLocaleString()}
+                  </td>
+                  <td className="px-5 py-3.5 mono text-xs tabular text-right text-primary">
+                    {c.roas > 0 ? `${c.roas.toFixed(2)}×` : "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </Card>
+        </div>
       </main>
     </>
   );

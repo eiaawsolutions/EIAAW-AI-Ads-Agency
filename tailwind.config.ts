@@ -6,45 +6,34 @@ const config: Config = {
   theme: {
     container: {
       center: true,
-      padding: "1.5rem",
-      screens: { "2xl": "1440px" },
+      padding: { DEFAULT: "1.5rem", lg: "2rem" },
+      screens: { "2xl": "1200px" },
     },
     extend: {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       colors: {
-        // Brand palette derived from EIAAW logo (deep teal → cyan → mint)
         brand: {
           50: "#E6FBF8",
           100: "#C2F5EC",
           200: "#8FEBDD",
           300: "#5DDECA",
           400: "#2FCBB3",
-          500: "#14B39B", // primary
+          500: "#14B39B",
           600: "#0E9082",
           700: "#0B6F67",
           800: "#0A5350",
           900: "#083C3C",
           950: "#04201F",
         },
-        ink: {
-          50: "#F6F8F9",
-          100: "#E8ECEE",
-          200: "#C9D2D6",
-          300: "#9BA9AF",
-          400: "#6B7B82",
-          500: "#4A5A61",
-          600: "#334148",
-          700: "#222E34",
-          800: "#151E22",
-          900: "#0B1316",
-          950: "#060B0D",
-        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        surface: {
+          1: "hsl(var(--surface-1))",
+          2: "hsl(var(--surface-2))",
+        },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
@@ -53,6 +42,7 @@ const config: Config = {
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
         border: "hsl(var(--border))",
+        "border-strong": "hsl(var(--border-strong))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
       },
@@ -61,32 +51,31 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      backgroundImage: {
-        "brand-gradient":
-          "linear-gradient(135deg, #083C3C 0%, #0E9082 35%, #2FCBB3 70%, #8FEBDD 100%)",
-        "brand-radial":
-          "radial-gradient(ellipse at top, rgba(47,203,179,0.25), transparent 60%)",
-        "grid-ink":
-          "linear-gradient(to right, rgba(201,210,214,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(201,210,214,0.06) 1px, transparent 1px)",
+      fontSize: {
+        "2xs": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
+        xs: ["0.75rem", { lineHeight: "1rem" }],
+        sm: ["0.8125rem", { lineHeight: "1.25rem" }],
+        base: ["0.9375rem", { lineHeight: "1.5rem" }],
+        lg: ["1rem", { lineHeight: "1.5rem" }],
+        xl: ["1.125rem", { lineHeight: "1.75rem" }],
+        "2xl": ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.02em" }],
+        "3xl": ["1.75rem", { lineHeight: "2rem", letterSpacing: "-0.025em" }],
+        "4xl": ["2.25rem", { lineHeight: "2.5rem", letterSpacing: "-0.03em" }],
+        "5xl": ["3rem", { lineHeight: "1.05", letterSpacing: "-0.035em" }],
+        "6xl": ["3.75rem", { lineHeight: "1.02", letterSpacing: "-0.04em" }],
+        "7xl": ["4.5rem", { lineHeight: "1", letterSpacing: "-0.045em" }],
       },
-      keyframes: {
-        "fade-up": {
-          from: { opacity: "0", transform: "translateY(12px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-        shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
-        },
-        "pulse-ring": {
-          "0%": { transform: "scale(0.8)", opacity: "0.6" },
-          "100%": { transform: "scale(2)", opacity: "0" },
-        },
+      spacing: {
+        section: "6rem",
+        "section-lg": "10rem",
       },
-      animation: {
-        "fade-up": "fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both",
-        shimmer: "shimmer 2.5s linear infinite",
-        "pulse-ring": "pulse-ring 2s cubic-bezier(0.22, 1, 0.36, 1) infinite",
+      transitionTimingFunction: {
+        out: "cubic-bezier(0.16, 1, 0.3, 1)",
+        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
+      },
+      transitionDuration: {
+        "150": "150ms",
+        "250": "250ms",
       },
     },
   },

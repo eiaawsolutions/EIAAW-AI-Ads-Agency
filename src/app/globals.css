@@ -2,79 +2,183 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────
+ * EIAAW — Linear-tier tokens
+ * Near-monochrome. Teal used for signal only (status, active,
+ * live data). Hairline borders. Tight typography. Minimal motion.
+ * ────────────────────────────────────────────────────────────── */
+
 @layer base {
   :root {
-    --background: 180 40% 3%;
-    --foreground: 180 10% 96%;
-    --card: 180 30% 5%;
-    --card-foreground: 180 10% 96%;
-    --popover: 180 30% 5%;
-    --popover-foreground: 180 10% 96%;
-    --primary: 172 79% 40%;
-    --primary-foreground: 180 40% 3%;
-    --secondary: 180 20% 12%;
-    --secondary-foreground: 180 10% 96%;
-    --muted: 180 15% 12%;
-    --muted-foreground: 180 10% 60%;
-    --accent: 172 79% 40%;
-    --accent-foreground: 180 40% 3%;
-    --destructive: 0 75% 55%;
+    /* Surfaces — true near-black, not blue-tinted */
+    --background: 0 0% 3.9%;           /* #0A0A0A */
+    --foreground: 0 0% 98%;            /* #FAFAFA */
+    --surface-1: 0 0% 7%;              /* #121212 card */
+    --surface-2: 0 0% 11%;              /* #1C1C1C raised */
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Borders — 1px hairlines */
+    --border: 0 0% 15%;                /* #262626 */
+    --border-strong: 0 0% 20%;         /* #333333 */
+    --input: 0 0% 15%;
+    --ring: 172 79% 40%;
+
+    /* Muted text */
+    --muted: 0 0% 9%;
+    --muted-foreground: 240 3% 63%;    /* #A1A1AA */
+
+    /* Primary — teal signal */
+    --primary: 172 79% 40%;            /* #14B39B */
+    --primary-foreground: 0 0% 3.9%;
+
+    /* Secondary — subtle elevation */
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Accents */
+    --accent: 0 0% 13%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 180 20% 14%;
-    --input: 180 20% 14%;
-    --ring: 172 79% 50%;
-    --radius: 0.75rem;
+
+    --radius: 0.5rem;  /* 8px — tighter than before */
   }
 }
 
 @layer base {
-  * { @apply border-border; }
-  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  * {
+    @apply border-border;
   }
-  ::selection { @apply bg-brand-500/30 text-brand-50; }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01", "ss03";
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  }
+  ::selection {
+    @apply bg-brand-500/25 text-brand-50;
+  }
+  /* Remove all default focus rings — we use ring utilities explicitly */
+  *:focus { outline: none; }
+  *:focus-visible {
+    outline: 1px solid hsl(var(--ring));
+    outline-offset: 1px;
+  }
 }
 
 @layer components {
-  .glow {
-    box-shadow:
-      0 0 0 1px rgba(47, 203, 179, 0.15),
-      0 20px 60px -20px rgba(20, 179, 155, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Hairline utilities — Linear's signature */
+  .hairline-t { border-top: 1px solid hsl(var(--border)); }
+  .hairline-b { border-bottom: 1px solid hsl(var(--border)); }
+  .hairline-l { border-left: 1px solid hsl(var(--border)); }
+  .hairline-r { border-right: 1px solid hsl(var(--border)); }
+
+  /* Monospace callout — for IDs, metrics, agent names */
+  .mono {
+    font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+    font-feature-settings: "zero", "ss01";
   }
-  .glass {
-    background: linear-gradient(180deg, rgba(8,60,60,0.55) 0%, rgba(4,32,31,0.45) 100%);
-    backdrop-filter: blur(12px) saturate(140%);
-    border: 1px solid rgba(47, 203, 179, 0.08);
+
+  /* Section label — small uppercase tag */
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase text-muted-foreground;
+    letter-spacing: 0.08em;
   }
-  .mono-tag {
-    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-brand-300;
+
+  /* Live indicator — teal dot with optional ping */
+  .live-dot {
+    position: relative;
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: hsl(var(--primary));
   }
-  .section { @apply py-24 md:py-32; }
-  .text-balance { text-wrap: balance; }
-  .text-gradient {
-    background: linear-gradient(180deg, #E6FBF8 0%, #5DDECA 55%, #14B39B 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .live-dot::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    background: hsl(var(--primary));
+    opacity: 0.3;
+    animation: live-ping 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
   }
-  .bg-hero {
-    background:
-      radial-gradient(1000px 500px at 50% -10%, rgba(47,203,179,0.18), transparent 60%),
-      radial-gradient(600px 300px at 80% 40%, rgba(20,179,155,0.12), transparent 60%),
-      linear-gradient(180deg, #04100F 0%, #060B0D 100%);
+  @keyframes live-ping {
+    0%, 100% { transform: scale(1); opacity: 0.25; }
+    50% { transform: scale(2); opacity: 0; }
   }
-  .grid-lines {
+
+  /* Agent status dot */
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+  }
+
+  /* Linear-style subtle grid background — for hero/section dividers */
+  .bg-grid {
     background-image:
-      linear-gradient(to right, rgba(143,235,221,0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(143,235,221,0.05) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
   }
-  .shimmer {
-    background: linear-gradient(90deg, transparent 0%, rgba(47,203,179,0.15) 50%, transparent 100%);
-    background-size: 200% 100%;
+
+  /* Numeric display — tabular figures for aligned metrics */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
+
+  /* Display text — tight tracking at large sizes */
+  .display {
+    letter-spacing: -0.03em;
+    font-weight: 500;
+    line-height: 1.05;
+  }
+
+  /* Terminal/code block styling */
+  .terminal {
+    background: hsl(var(--surface-1));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    font-family: var(--font-mono), monospace;
+    font-size: 12px;
+    color: hsl(var(--foreground));
+  }
+
+  /* Data cell — for dashboard tables */
+  .data-cell {
+    @apply mono tabular text-sm text-foreground/90;
+  }
+
+  /* Fade-in (single, subtle) */
+  .fade-in {
+    animation: fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Scrollbar — near-invisible, Linear-style */
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 }

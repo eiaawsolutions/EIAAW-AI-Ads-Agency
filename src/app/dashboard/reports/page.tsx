@@ -1,36 +1,38 @@
 import { DashboardTopbar } from "@/components/dashboard/topbar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 
 export const metadata = { title: "Reports" };
 
 const REPORTS = [
-  { name: "Weekly — Mar 31 to Apr 6", cadence: "Weekly", insight: "ROAS +12%. Proof-led creatives beat benefit-led by 18%. Kill TikTok prospecting set 04." },
-  { name: "Monthly — March 2026", cadence: "Monthly", insight: "Meta drove 58% of revenue on 41% of spend. Recommend shifting $8k from LinkedIn to Meta for April." },
-  { name: "Weekly — Mar 24 to Mar 30", cadence: "Weekly", insight: "CPA stable. Creative fatigue on 3 top ads; ads-generate queued 4 variants." },
+  { date: "Apr 06", name: "Weekly — Mar 31 to Apr 6",   cadence: "Weekly",  insight: "ROAS +12%. Proof-led creatives beat benefit-led by 18%. Kill TikTok prospecting set 04." },
+  { date: "Mar 31", name: "Monthly — March 2026",        cadence: "Monthly", insight: "Meta drove 58% of revenue on 41% of spend. Recommend shifting $8k from LinkedIn to Meta for April." },
+  { date: "Mar 30", name: "Weekly — Mar 24 to Mar 30",  cadence: "Weekly",  insight: "CPA stable. Creative fatigue on 3 top ads; ads-generate queued 4 variants." },
 ];
 
 export default function ReportsPage() {
   return (
     <>
-      <DashboardTopbar title="Automated reports" subtitle="Daily / weekly / monthly · AI-generated insights" />
-      <main className="p-8 space-y-4">
-        {REPORTS.map((r) => (
-          <Card key={r.name} className="p-6">
-            <div className="flex items-start justify-between gap-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-base font-semibold">{r.name}</h3>
-                  <Badge variant="outline">{r.cadence}</Badge>
+      <DashboardTopbar title="Reports" subtitle="Daily / weekly / monthly · AI-generated" />
+      <main className="p-6">
+        <div className="rounded-lg border border-border overflow-hidden">
+          {REPORTS.map((r, i) => (
+            <div key={r.name} className={`px-5 py-5 ${i > 0 ? "hairline-t" : ""}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3">
+                    <span className="mono text-xs text-muted-foreground tabular shrink-0">{r.date}</span>
+                    <h3 className="text-sm font-medium text-foreground">{r.name}</h3>
+                    <Badge variant="outline">{r.cadence}</Badge>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed max-w-3xl">{r.insight}</p>
                 </div>
-                <p className="mt-3 text-sm text-foreground/80 leading-relaxed">{r.insight}</p>
+                <Button variant="subtle" size="sm"><FileDown className="h-3 w-3" /> PDF</Button>
               </div>
-              <Button variant="secondary" size="sm"><FileDown /> PDF</Button>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </main>
     </>
   );
