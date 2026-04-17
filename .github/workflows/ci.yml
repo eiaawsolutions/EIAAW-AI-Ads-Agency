@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci --no-audit --no-fund
+        env:
+          # Skip prisma's postinstall if no DB is available — the generate
+          # step will rerun inside the typecheck/build jobs.
+          PRISMA_SKIP_POSTINSTALL_GENERATE: "true"
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+        env:
+          EIAAW_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+      - name: Build
+        run: npx next build
+        env:
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          AUTH_SECRET: "ci-auth-secret-placeholder-value-32char"
