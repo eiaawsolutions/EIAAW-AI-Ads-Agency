@@ -1,0 +1,513 @@
+// EIAAW AI Ads Agency — Prisma schema
+// Multi-tenant: every tenant-scoped row carries `orgId`. Application-layer
+// middleware enforces isolation; Postgres RLS policies can be added at
+// migration time (see prisma/policies.sql) without changing this schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  ADMIN
+  STRATEGIST
+  ANALYST
+  VIEWER
+}
+
+enum Plan {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum Platform {
+  META
+  GOOGLE
+  TIKTOK
+  LINKEDIN
+  MICROSOFT
+  YOUTUBE
+  APPLE
+}
+
+enum CampaignObjective {
+  SALES
+  LEADS
+  APP_INSTALLS
+  TRAFFIC
+  AWARENESS
+  ENGAGEMENT
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AgentKind {
+  ADS_PLAN
+  ADS_DNA
+  ADS_CREATE
+  ADS_MATH
+  ADS_BUDGET
+  ADS_GOOGLE
+  ADS_META
+  ADS_TIKTOK
+  ADS_LINKEDIN
+  ADS_MICROSOFT
+  ADS_YOUTUBE
+  ADS_APPLE
+  ADS_AUDIT
+  ADS_CREATIVE
+  ADS_COMPETITOR
+  ADS_LANDING
+  ADS_TEST
+  ADS_GENERATE
+  ADS_PHOTOSHOOT
+}
+
+enum AgentRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  ABORTED
+}
+
+enum ExecutionMode {
+  AUTONOMOUS
+  ASSISTED
+  ENTERPRISE
+}
+
+// ─────────────────────────────────────────────────────────────
+// Identity & tenancy
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships Membership[]
+  sessions    Session[]
+  accounts    Account[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  name          String
+  logoUrl       String?
+  plan          Plan          @default(STARTER)
+  executionMode ExecutionMode @default(ASSISTED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  memberships  Membership[]
+  brands       Brand[]
+  campaigns    Campaign[]
+  agentRuns    AgentRun[]
+  integrations Integration[]
+  subscription Subscription?
+  experiments  Experiment[]
+  reports      Report[]
+  auditLogs    AuditLog[]
+
+  @@index([slug])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  orgId     String
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Billing
+// ─────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  orgId                String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  plan                 Plan               @default(STARTER)
+  status               SubscriptionStatus @default(TRIALING)
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Brand DNA (ads-dna output)
+// ─────────────────────────────────────────────────────────────
+
+model Brand {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  domain    String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dna       BrandDna?
+  campaigns Campaign[]
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model BrandDna {
+  id           String   @id @default(cuid())
+  brandId      String   @unique
+  // Business
+  businessGoals Json    // ["sales","leads",...]
+  valueProps    String[] @default([])
+  positioning   String?
+  // Audience
+  personas      Json    // [{name, age, pains, channels, ...}]
+  markets       String[] @default([])
+  // Creative
+  toneOfVoice   Json    // {pillars:[], banned:[]}
+  colorPalette  Json    // {primary, secondary, accent, neutrals[]}
+  typography    Json    // {display, body}
+  imageryStyle  String?
+  // Financial
+  budgetMin     Int?     // monthly, minor units (cents)
+  budgetMax     Int?
+  currency      String   @default("USD")
+  // KPIs
+  targetCpa     Float?
+  targetRoas    Float?
+  targetCtr     Float?
+  // Raw
+  sourceUrl     String?
+  rawExtract    Json?    // full agent output
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Platform integrations (OAuth tokens)
+// ─────────────────────────────────────────────────────────────
+
+model Integration {
+  id           String   @id @default(cuid())
+  orgId        String
+  platform     Platform
+  externalId   String?  // ad account id
+  displayName  String?
+  accessToken  String?  @db.Text  // encrypted at rest (app-layer)
+  refreshToken String?  @db.Text
+  expiresAt    DateTime?
+  scopes       String[] @default([])
+  status       String   @default("connected") // connected|expired|revoked|error
+  meta         Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, platform, externalId])
+  @@index([orgId, platform])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Campaigns, ad sets, ads (platform-agnostic)
+// ─────────────────────────────────────────────────────────────
+
+model Campaign {
+  id         String            @id @default(cuid())
+  orgId      String
+  brandId    String
+  name       String
+  objective  CampaignObjective
+  platforms  Platform[]        @default([])
+  status     CampaignStatus    @default(DRAFT)
+  startAt    DateTime?
+  endAt      DateTime?
+  dailyBudget Int?             // minor units
+  totalBudget Int?
+  currency   String            @default("USD")
+  strategy   Json?             // ads-plan output (funnel, allocation, KPIs)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  brand       Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  adSets      AdSet[]
+  experiments Experiment[]
+  metrics     MetricDaily[]
+  agentRuns   AgentRun[]
+
+  @@index([orgId, status])
+  @@index([brandId])
+}
+
+model AdSet {
+  id           String   @id @default(cuid())
+  campaignId   String
+  platform     Platform
+  externalId   String?
+  name         String
+  audience     Json?
+  placements   String[] @default([])
+  dailyBudget  Int?
+  bidStrategy  String?
+  status       CampaignStatus @default(DRAFT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads      Ad[]
+
+  @@index([campaignId])
+}
+
+model Ad {
+  id         String   @id @default(cuid())
+  adSetId    String
+  externalId String?
+  headline   String?
+  body       String?
+  cta        String?
+  imageUrl   String?
+  videoUrl   String?
+  landingUrl String?
+  variantKey String?  // links to Experiment variants
+  status     CampaignStatus @default(DRAFT)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  adSet   AdSet             @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  metrics MetricDaily[]
+
+  @@index([adSetId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Metrics (daily rollups per entity)
+// ─────────────────────────────────────────────────────────────
+
+model MetricDaily {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  platform    Platform
+  campaignId  String?
+  adId        String?
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  spend       Int      @default(0) // minor units
+  revenue     Int      @default(0)
+  ctr         Float    @default(0)
+  cpc         Float    @default(0)
+  cpa         Float    @default(0)
+  roas        Float    @default(0)
+
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ad       Ad?       @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@unique([date, platform, campaignId, adId])
+  @@index([campaignId, date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Agent runtime
+// ─────────────────────────────────────────────────────────────
+
+model AgentRun {
+  id         String        @id @default(cuid())
+  orgId      String
+  campaignId String?
+  kind       AgentKind
+  status     AgentRunStatus @default(QUEUED)
+  input      Json
+  output     Json?
+  error      String?
+  tokensIn   Int            @default(0)
+  tokensOut  Int            @default(0)
+  costUsd    Float          @default(0)
+  model      String?
+  startedAt  DateTime?
+  endedAt    DateTime?
+  createdAt  DateTime       @default(now())
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, kind, status])
+  @@index([campaignId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Experiments (ads-test)
+// ─────────────────────────────────────────────────────────────
+
+model Experiment {
+  id             String           @id @default(cuid())
+  orgId          String
+  campaignId     String
+  name           String
+  hypothesis     String?
+  kind           String           // "headline" | "creative" | "audience" | "cta" | "multivariate"
+  status         ExperimentStatus @default(DRAFT)
+  trafficSplit   Json             // {variantKey: percent}
+  primaryMetric  String           @default("roas")
+  minSampleSize  Int?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  winner         String?
+  confidence     Float?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  variants ExperimentVariant[]
+
+  @@index([orgId, status])
+  @@index([campaignId])
+}
+
+model ExperimentVariant {
+  id           String   @id @default(cuid())
+  experimentId String
+  key          String   // "A", "B", "control"
+  payload      Json     // {headline?, body?, imageUrl?, audience?}
+  impressions  Int      @default(0)
+  clicks       Int      @default(0)
+  conversions  Int      @default(0)
+  spend        Int      @default(0)
+  revenue      Int      @default(0)
+
+  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, key])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reports
+// ─────────────────────────────────────────────────────────────
+
+model Report {
+  id         String   @id @default(cuid())
+  orgId      String
+  name       String
+  cadence    String   // "daily" | "weekly" | "monthly" | "adhoc"
+  period     Json     // {from, to}
+  summary    Json?    // AI-generated insights
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Audit log (compliance)
+// ─────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  actorId   String?
+  action    String
+  target    String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+}

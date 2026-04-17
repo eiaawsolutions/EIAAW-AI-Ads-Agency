@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 180 40% 3%;
+    --foreground: 180 10% 96%;
+    --card: 180 30% 5%;
+    --card-foreground: 180 10% 96%;
+    --popover: 180 30% 5%;
+    --popover-foreground: 180 10% 96%;
+    --primary: 172 79% 40%;
+    --primary-foreground: 180 40% 3%;
+    --secondary: 180 20% 12%;
+    --secondary-foreground: 180 10% 96%;
+    --muted: 180 15% 12%;
+    --muted-foreground: 180 10% 60%;
+    --accent: 172 79% 40%;
+    --accent-foreground: 180 40% 3%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 180 20% 14%;
+    --input: 180 20% 14%;
+    --ring: 172 79% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  ::selection { @apply bg-brand-500/30 text-brand-50; }
+}
+
+@layer components {
+  .glow {
+    box-shadow:
+      0 0 0 1px rgba(47, 203, 179, 0.15),
+      0 20px 60px -20px rgba(20, 179, 155, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .glass {
+    background: linear-gradient(180deg, rgba(8,60,60,0.55) 0%, rgba(4,32,31,0.45) 100%);
+    backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(47, 203, 179, 0.08);
+  }
+  .mono-tag {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-brand-300;
+  }
+  .section { @apply py-24 md:py-32; }
+  .text-balance { text-wrap: balance; }
+  .text-gradient {
+    background: linear-gradient(180deg, #E6FBF8 0%, #5DDECA 55%, #14B39B 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-hero {
+    background:
+      radial-gradient(1000px 500px at 50% -10%, rgba(47,203,179,0.18), transparent 60%),
+      radial-gradient(600px 300px at 80% 40%, rgba(20,179,155,0.12), transparent 60%),
+      linear-gradient(180deg, #04100F 0%, #060B0D 100%);
+  }
+  .grid-lines {
+    background-image:
+      linear-gradient(to right, rgba(143,235,221,0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(143,235,221,0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  }
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(47,203,179,0.15) 50%, transparent 100%);
+    background-size: 200% 100%;
+  }
+}

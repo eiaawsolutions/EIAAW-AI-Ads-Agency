@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+coverage/
+.turbo/
+tsconfig.tsbuildinfo
+prisma/migrations/.migration_lock.toml.bak
+
+# Raw brand source files are kept outside the repo; public/brand/ holds the shipped copies.
+/logo/
