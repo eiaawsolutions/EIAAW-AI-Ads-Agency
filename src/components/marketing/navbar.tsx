@@ -20,6 +20,12 @@ export function MarketingNavbar() {
             <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Pricing
             </Link>
+            <Link href="/enterprise" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
+              Enterprise
+            </Link>
+            <Link href="/trust" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
+              Trust
+            </Link>
             <Link href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Docs
             </Link>

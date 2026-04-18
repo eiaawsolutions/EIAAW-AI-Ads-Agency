@@ -216,7 +216,9 @@ export default function HomePage() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{t.cap}</p>
                 <Button asChild className="mt-6 w-full" variant={t.featured ? "secondary" : "subtle"}>
-                  <Link href="/onboarding">Start trial</Link>
+                  <Link href={t.name === "Enterprise" ? "/enterprise" : "/onboarding"}>
+                    {t.name === "Enterprise" ? "Talk to sales" : "Start trial"}
+                  </Link>
                 </Button>
                 <ul className="mt-6 space-y-2">
                   {t.perks.map((p) => (

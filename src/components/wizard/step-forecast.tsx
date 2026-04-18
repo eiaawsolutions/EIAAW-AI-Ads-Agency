@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { useWizard } from "./wizard-store";
 
@@ -14,20 +15,25 @@ export function StepForecast() {
 
   async function forecast() {
     setLoading(true);
-    try {
-      const res = await fetch("/api/agents/ads-math", {
+    const res = await apiFetch<{ ok: boolean; output?: Record<string, unknown>; error?: string }>(
+      "/api/agents/ads-math",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ monthlyBudgetUsd }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error);
-      update({ forecastResult: data.output });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setLoading(false);
+      },
+    );
+    setLoading(false);
+
+    if (!res.ok) {
+      if (![429, 402, 401].includes(res.status) && res.status < 500) toast.error(res.error);
+      return;
     }
+    if (!res.data.ok) {
+      toast.error(res.data.error ?? "Forecast failed");
+      return;
+    }
+    update({ forecastResult: res.data.output });
   }
 
   useEffect(() => {

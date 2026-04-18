@@ -511,3 +511,37 @@ model AuditLog {
 
   @@index([orgId, createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────
+// Enterprise lead capture (pre-tenant — no orgId)
+// ─────────────────────────────────────────────────────────────
+
+enum EnterpriseLeadKind {
+  DEMO
+  DPA
+  SECURITY_REVIEW
+  RFP
+  OTHER
+}
+
+model EnterpriseLead {
+  id          String             @id @default(cuid())
+  kind        EnterpriseLeadKind
+  workEmail   String
+  fullName    String
+  company     String
+  jobTitle    String?
+  monthlySpend String?
+  platforms   String?
+  message     String?
+  ipHash      String?
+  userAgent   String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  notified    Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+
+  @@index([kind, createdAt])
+  @@index([workEmail])
+}

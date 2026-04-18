@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-client";
 import { useWizard } from "./wizard-store";
 
 export function StepCompetitor() {
@@ -11,21 +12,26 @@ export function StepCompetitor() {
 
   async function scan() {
     setLoading(true);
-    try {
-      const res = await fetch("/api/agents/ads-competitor", {
+    const res = await apiFetch<{ ok: boolean; output?: Record<string, unknown>; error?: string }>(
+      "/api/agents/ads-competitor",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ brand: brandName, market: "US" }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error);
-      update({ competitorResult: data.output });
-      toast.success("Competitor scan complete");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setLoading(false);
+      },
+    );
+    setLoading(false);
+
+    if (!res.ok) {
+      if (![429, 402, 401].includes(res.status) && res.status < 500) toast.error(res.error);
+      return;
     }
+    if (!res.data.ok) {
+      toast.error(res.data.error ?? "Scan failed");
+      return;
+    }
+    update({ competitorResult: res.data.output });
+    toast.success("Competitor scan complete");
   }
 
   const result = competitorResult as

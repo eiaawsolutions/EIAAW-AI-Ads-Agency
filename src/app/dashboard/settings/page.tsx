@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { UsageWidget } from "@/components/dashboard/usage-widget";
 
 export const metadata = { title: "Settings" };
 
@@ -17,6 +18,8 @@ export default function SettingsPage() {
     <>
       <DashboardTopbar title="Settings" subtitle="Organization · billing · execution mode" />
       <main className="p-6 space-y-6 max-w-2xl">
+        <UsageWidget />
+
         {/* Organization */}
         <section className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="px-5 py-3 hairline-b">

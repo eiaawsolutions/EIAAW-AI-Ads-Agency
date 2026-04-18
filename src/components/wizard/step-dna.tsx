@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-client";
 import { useWizard } from "./wizard-store";
 
 export function StepDna() {
@@ -17,21 +18,29 @@ export function StepDna() {
       return;
     }
     setLoading(true);
-    try {
-      const res = await fetch("/api/agents/ads-dna", {
+    const res = await apiFetch<{ ok: boolean; output?: Record<string, unknown>; error?: string }>(
+      "/api/agents/ads-dna",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ brandName, domain: domain || undefined, notes: dnaNotes || undefined }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error ?? "DNA extraction failed");
-      update({ dnaResult: data.output });
-      toast.success("Brand DNA extracted");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setLoading(false);
+      },
+    );
+    setLoading(false);
+
+    if (!res.ok) {
+      // apiFetch already toasted 429/402/401/5xx; only show for other errors
+      if (![429, 402, 401].includes(res.status) && res.status < 500) {
+        toast.error(res.error);
+      }
+      return;
     }
+    if (!res.data.ok) {
+      toast.error(res.data.error ?? "DNA extraction failed");
+      return;
+    }
+    update({ dnaResult: res.data.output });
+    toast.success("Brand DNA extracted");
   }
 
   return (

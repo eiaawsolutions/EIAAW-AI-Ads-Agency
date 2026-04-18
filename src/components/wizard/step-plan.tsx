@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api-client";
 import { useWizard } from "./wizard-store";
 
 const OBJECTIVES = [
@@ -32,21 +33,26 @@ export function StepPlan() {
       return;
     }
     setLoading(true);
-    try {
-      const res = await fetch("/api/agents/ads-plan", {
+    const res = await apiFetch<{ ok: boolean; output?: Record<string, unknown>; error?: string }>(
+      "/api/agents/ads-plan",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ objective, monthlyBudgetUsd, platforms, targetCpa, targetRoas, brandDna: dnaResult }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error ?? "Plan failed");
-      update({ planResult: data.output });
-      toast.success("Strategy built");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
-    } finally {
-      setLoading(false);
+      },
+    );
+    setLoading(false);
+
+    if (!res.ok) {
+      if (![429, 402, 401].includes(res.status) && res.status < 500) toast.error(res.error);
+      return;
     }
+    if (!res.data.ok) {
+      toast.error(res.data.error ?? "Plan failed");
+      return;
+    }
+    update({ planResult: res.data.output });
+    toast.success("Strategy built");
   }
 
   return (

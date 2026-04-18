@@ -85,7 +85,9 @@ export default function PricingPage() {
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{t.cap}</p>
               <Button asChild className="mt-8 w-full" variant={t.featured ? "secondary" : "subtle"}>
-                <Link href="/onboarding">Start 14-day trial</Link>
+                <Link href={t.name === "Enterprise" ? "/enterprise" : "/onboarding"}>
+                  {t.name === "Enterprise" ? "Talk to sales" : "Start 14-day trial"}
+                </Link>
               </Button>
               <ul className="mt-8 space-y-2.5">
                 {t.perks.map((p) => (
