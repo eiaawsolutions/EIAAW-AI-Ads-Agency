@@ -112,24 +112,33 @@ runs up to 4 ticks with 15s spacing, so a 1-minute cron gives us an
 effective 15s cadence on queue advancement. Interactive flows (wizard)
 fire an inline background tick on enqueue so they don't wait for cron.
 
-### Set up Railway Cron (1-minute cadence)
+### Set up Railway Cron (5-minute cadence — Railway's hard minimum)
 
-1. Open the Railway project dashboard: [railway.app/project/519793db-d980-4032-bf2f-1b598e73b1a5](https://railway.app/project/519793db-d980-4032-bf2f-1b598e73b1a5)
-2. **+ New** → **Cron schedule** (or "Empty Service" → Settings → Cron)
-3. **Schedule**: `*/1 * * * *` (every minute — Railway's minimum)
-4. **Start command**:
+Already provisioned on production as service `eiaaw-worker-cron`. To recreate
+from scratch:
 
-   ```bash
-   curl -fsS -X POST \
-     "$BASE_URL/api/worker/tick" \
-     -H "x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET"
-   ```
+1. Open the [Railway project dashboard](https://railway.app/project/519793db-d980-4032-bf2f-1b598e73b1a5)
+2. **+ New** → **Empty Service**; set **Source** to Docker image `alpine/curl:latest`
+3. **Settings → Deploy**:
+   - **Cron Schedule**: `*/5 * * * *` (attempting less returns
+     "Minimum interval between cron executions is 5 minutes")
+   - **Custom Start Command** (must wrap in `sh -c` — the cron executor
+     runs the string directly without invoking a shell, so `$BASE_URL`
+     won't expand on its own; also `|| echo` so a curl failure shows
+     the exit code in logs instead of being swallowed):
 
-5. **Variables** on that cron service:
+     ```bash
+     sh -c "curl -fsS -X POST \"$BASE_URL/api/worker/tick\" -H \"x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET\" || echo \"curl exit=$?\""
+     ```
+
+4. **Variables** on the cron service:
    - `BASE_URL=https://eiaaw-ai-ads-agency-production-6529.up.railway.app`
-     (or add a reference to the web service's `RAILWAY_PUBLIC_DOMAIN`)
-   - `EIAAW_WORKER_SECRET` → reference the same secret set on the web service
-6. **Image**: default (Alpine with curl is fine) — no Dockerfile needed
+   - `EIAAW_WORKER_SECRET` = same value as on the web service
+
+With enqueue's `fireImmediate` hook, interactive wizard flows run their
+first step without waiting for the 5-minute cron. The cron exists to
+advance retried steps and background jobs that weren't enqueued through
+the HTTP path.
 
 ### Verification
 
