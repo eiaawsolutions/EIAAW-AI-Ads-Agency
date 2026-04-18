@@ -9,10 +9,10 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Primary — solid teal, used sparingly
-        default: "bg-primary text-primary-foreground hover:bg-brand-400 rounded-md",
-        // Secondary — default CTA. Near-white with hairline border
+        default: "bg-primary text-primary-foreground hover:bg-brand-600 rounded-md",
+        // Secondary — default CTA. Warm-dark solid against cream
         secondary:
-          "bg-white text-background hover:bg-white/90 rounded-md",
+          "bg-foreground text-background hover:bg-foreground/90 rounded-md",
         // Subtle — surface with border
         subtle:
           "bg-surface-1 text-foreground border border-border hover:bg-surface-2 hover:border-border-strong rounded-md",

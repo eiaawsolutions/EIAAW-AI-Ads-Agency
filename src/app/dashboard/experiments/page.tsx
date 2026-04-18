@@ -51,10 +51,10 @@ export default function ExperimentsPage() {
                     style={{
                       width: `${e.conf}%`,
                       background: e.conf >= 95
-                        ? "linear-gradient(90deg, hsl(172 72% 48%), hsl(142 71% 45%))"
+                        ? "linear-gradient(90deg, hsl(174 62% 36%), hsl(142 55% 40%))"
                         : e.conf >= 80
-                          ? "linear-gradient(90deg, hsl(172 72% 48%), hsl(172 72% 60%))"
-                          : "linear-gradient(90deg, hsl(26 100% 55%), hsl(26 100% 65%))",
+                          ? "linear-gradient(90deg, hsl(174 62% 36%), hsl(174 62% 52%))"
+                          : "linear-gradient(90deg, hsl(26 85% 48%), hsl(26 85% 58%))",
                     }}
                   />
                 </div>

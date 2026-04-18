@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function MarketingNavbar() {
   return (
-    <header className="sticky top-0 z-40 hairline-b bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 hairline-b bg-background/85 backdrop-blur-xl">
       <div className="container flex h-14 items-center justify-between">
         <div className="flex items-center gap-10">
           <Link href="/" className="flex items-center">

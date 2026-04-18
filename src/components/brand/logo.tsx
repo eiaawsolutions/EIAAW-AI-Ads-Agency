@@ -1,22 +1,42 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-/**
- * Linear-tier mark. Monochrome by default — `currentColor`.
- * Geometric E-glyph replacing the photo-real shield for a technical feel.
- */
-export function LogoMark({ className }: { className?: string }) {
+const SHIELD_SRC = "/brand/EIAAW Solutions logo shield.png";
+
+export function LogoMark({ className, size = 28 }: { className?: string; size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" className={cn("h-5 w-5", className)} aria-hidden>
-      <path d="M4 4h16v3H7v3h11v3H7v4h13v3H4z" fill="currentColor" />
-    </svg>
+    <Image
+      src={SHIELD_SRC}
+      alt="EIAAW Solutions"
+      width={size}
+      height={size}
+      priority
+      className={cn("h-7 w-7 object-contain", className)}
+    />
   );
 }
 
 export function LogoWordmark({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <LogoMark className="text-foreground" />
-      <span className="text-sm font-medium tracking-tight text-foreground">EIAAW</span>
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <LogoMark />
+      <span className="text-[15px] font-semibold tracking-tight text-foreground leading-none">
+        EIAAW
+      </span>
+    </div>
+  );
+}
+
+export function LogoLockup({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-center gap-3", className)}>
+      <LogoMark size={36} className="h-9 w-9" />
+      <div className="flex flex-col leading-tight">
+        <span className="text-sm font-semibold tracking-[0.02em] text-foreground">
+          EIAAW SOLUTIONS
+        </span>
+        <span className="eyebrow mt-0.5 !text-[10px]">AI · Human Partnerships</span>
+      </div>
     </div>
   );
 }

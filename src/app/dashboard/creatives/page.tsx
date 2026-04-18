@@ -28,9 +28,9 @@ export default function CreativesPage() {
                   className="absolute inset-0 transition-transform duration-250 group-hover:scale-[1.02]"
                   style={{
                     background: [
-                      "radial-gradient(ellipse at 30% 20%, hsl(172 72% 48% / 0.45), transparent 60%)",
-                      "radial-gradient(ellipse at 80% 70%, hsl(328 85% 57% / 0.35), transparent 55%)",
-                      "linear-gradient(135deg, hsl(218 38% 11%), hsl(219 35% 17%))",
+                      "radial-gradient(ellipse at 30% 20%, hsl(174 62% 40% / 0.38), transparent 60%)",
+                      "radial-gradient(ellipse at 80% 70%, hsl(26 80% 60% / 0.28), transparent 55%)",
+                      "linear-gradient(135deg, hsl(36 32% 93%), hsl(34 26% 89%))",
                     ].join(","),
                   }}
                 />

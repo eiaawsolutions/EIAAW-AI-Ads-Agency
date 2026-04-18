@@ -23,15 +23,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#04201F",
+  themeColor: "#FAF7F2",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className={`${sans.variable} ${mono.variable} font-sans`}>
         <Providers>{children}</Providers>
-        <Toaster theme="dark" richColors position="bottom-right" />
+        <Toaster theme="light" richColors position="bottom-right" />
       </body>
     </html>
   );

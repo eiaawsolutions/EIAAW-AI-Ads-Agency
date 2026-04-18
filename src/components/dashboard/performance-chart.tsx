@@ -21,17 +21,17 @@ export function PerformanceChart({ data }: { data: PlatformSeriesRow[] }) {
             </linearGradient>
           ))}
         </defs>
-        <CartesianGrid stroke="hsl(217 30% 21%)" strokeDasharray="0" vertical={false} />
+        <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="0" vertical={false} />
         <XAxis
           dataKey="date"
-          stroke="hsl(217 20% 65%)"
+          stroke="hsl(var(--muted-foreground))"
           fontSize={11}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
-          stroke="hsl(217 20% 65%)"
+          stroke="hsl(var(--muted-foreground))"
           fontSize={11}
           tickLine={false}
           axisLine={false}
@@ -40,21 +40,22 @@ export function PerformanceChart({ data }: { data: PlatformSeriesRow[] }) {
         />
         <Tooltip
           contentStyle={{
-            background: "hsl(218 38% 11%)",
-            border: "1px solid hsl(217 30% 21%)",
+            background: "hsl(var(--surface-1))",
+            border: "1px solid hsl(var(--border))",
             borderRadius: 8,
             fontSize: 12,
             padding: "8px 12px",
+            color: "hsl(var(--foreground))",
           }}
-          labelStyle={{ color: "hsl(217 20% 65%)", fontSize: 11, marginBottom: 4 }}
-          itemStyle={{ color: "hsl(210 40% 97%)" }}
-          cursor={{ stroke: "hsl(217 28% 28%)", strokeWidth: 1 }}
+          labelStyle={{ color: "hsl(var(--muted-foreground))", fontSize: 11, marginBottom: 4 }}
+          itemStyle={{ color: "hsl(var(--foreground))" }}
+          cursor={{ stroke: "hsl(var(--border-strong))", strokeWidth: 1 }}
         />
         <Legend
           wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
           iconType="circle"
           iconSize={6}
-          formatter={(v) => <span style={{ color: "hsl(217 20% 65%)", textTransform: "capitalize" }}>{v}</span>}
+          formatter={(v) => <span style={{ color: "hsl(var(--muted-foreground))", textTransform: "capitalize" }}>{v}</span>}
         />
         <Area
           type="monotone"

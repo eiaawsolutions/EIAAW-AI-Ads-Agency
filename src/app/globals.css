@@ -3,45 +3,45 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────
- * EIAAW — "Dawn" palette
- * Deep navy-teal base with warm accents. Linear-tier precision
- * + Stripe-tier warmth. Per-platform brand colors on data.
+ * EIAAW — "Daybreak" palette
+ * Warm cream base with brand-teal accent. Stripe/Linear warmth
+ * tuned to the EIAAW shield hue. Platform colors warm-shifted.
  * ────────────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
-    --background: 215 40% 7%;
-    --foreground: 210 40% 97%;
-    --surface-1: 218 38% 11%;
-    --surface-2: 219 35% 17%;
-    --card: 218 38% 11%;
-    --card-foreground: 210 40% 97%;
-    --popover: 218 38% 11%;
-    --popover-foreground: 210 40% 97%;
-    --border: 217 30% 21%;
-    --border-strong: 217 28% 28%;
-    --input: 217 30% 21%;
-    --ring: 172 72% 48%;
-    --muted: 218 38% 13%;
-    --muted-foreground: 217 20% 65%;
-    --primary: 172 72% 48%;
-    --primary-foreground: 215 40% 7%;
-    --secondary: 219 35% 17%;
-    --secondary-foreground: 210 40% 97%;
-    --accent: 219 35% 17%;
-    --accent-foreground: 210 40% 97%;
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --background: 38 38% 96%;
+    --foreground: 28 15% 10%;
+    --surface-1: 36 32% 93%;
+    --surface-2: 34 26% 89%;
+    --card: 38 38% 96%;
+    --card-foreground: 28 15% 10%;
+    --popover: 38 38% 96%;
+    --popover-foreground: 28 15% 10%;
+    --border: 34 22% 84%;
+    --border-strong: 30 18% 72%;
+    --input: 34 22% 84%;
+    --ring: 174 62% 40%;
+    --muted: 36 28% 91%;
+    --muted-foreground: 28 10% 38%;
+    --primary: 174 62% 36%;
+    --primary-foreground: 38 38% 97%;
+    --secondary: 36 28% 89%;
+    --secondary-foreground: 28 15% 10%;
+    --accent: 36 28% 89%;
+    --accent-foreground: 28 15% 10%;
+    --destructive: 12 72% 44%;
+    --destructive-foreground: 38 38% 97%;
     --radius: 0.625rem;
 
-    /* Platform brand colors */
-    --platform-meta:      217 89% 61%;
-    --platform-google:    142 71% 45%;
-    --platform-tiktok:    328 85% 57%;
-    --platform-linkedin:  206 100% 40%;
-    --platform-microsoft:  26 100% 55%;
-    --platform-youtube:     0 78% 55%;
-    --platform-apple:     210 10% 85%;
+    /* Platform brand colors — warm-shifted for daybreak base */
+    --platform-meta:      217 78% 50%;
+    --platform-google:    142 58% 38%;
+    --platform-tiktok:    328 72% 48%;
+    --platform-linkedin:  206 85% 36%;
+    --platform-microsoft:  26 92% 46%;
+    --platform-youtube:     0 70% 46%;
+    --platform-apple:     210 10% 38%;
   }
 }
 
@@ -57,8 +57,8 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
     background-image:
-      radial-gradient(ellipse 1200px 600px at 50% -10%, hsl(172 72% 48% / 0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 800px 400px at 100% 20%, hsl(328 85% 57% / 0.025) 0%, transparent 50%);
+      radial-gradient(ellipse 1200px 600px at 50% -10%, hsl(174 62% 40% / 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 900px 500px at 100% 20%, hsl(26 80% 60% / 0.04) 0%, transparent 55%);
     background-attachment: fixed;
   }
   ::selection { @apply bg-primary/25 text-foreground; }
@@ -117,23 +117,24 @@
 
   .bg-grid {
     background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+      linear-gradient(to right, hsl(var(--border-strong) / 0.35) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border-strong) / 0.35) 1px, transparent 1px);
     background-size: 64px 64px;
     mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
   }
 
   .bg-dawn {
     background:
-      radial-gradient(ellipse 900px 500px at 15% 10%, hsl(172 72% 48% / 0.18) 0%, transparent 55%),
-      radial-gradient(ellipse 700px 500px at 85% 25%, hsl(328 85% 57% / 0.14) 0%, transparent 50%),
-      radial-gradient(ellipse 800px 400px at 50% 90%, hsl(217 89% 61% / 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 900px 500px at 15% 10%, hsl(174 62% 40% / 0.12) 0%, transparent 55%),
+      radial-gradient(ellipse 700px 500px at 85% 25%, hsl(26 80% 60% / 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse 800px 400px at 50% 90%, hsl(34 50% 70% / 0.10) 0%, transparent 55%),
       hsl(var(--background));
   }
 
   .bg-dawn-subtle {
     background:
-      radial-gradient(ellipse 700px 300px at 50% 0%, hsl(172 72% 48% / 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 700px 300px at 50% 0%, hsl(174 62% 40% / 0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 500px 260px at 80% 0%, hsl(26 80% 60% / 0.05) 0%, transparent 55%),
       hsl(var(--background));
   }
 

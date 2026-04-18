@@ -141,7 +141,7 @@ export function LiveDemoTerminal() {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-[0_20px_60px_-20px_hsl(172_72%_48%_/_0.15)]">
+    <div className="overflow-hidden rounded-lg border border-border bg-surface-1 shadow-[0_20px_60px_-20px_hsl(174_62%_40%_/_0.18)]">
       {/* chrome */}
       <div className="flex items-center justify-between hairline-b px-4 py-2.5">
         <div className="flex items-center gap-3">
