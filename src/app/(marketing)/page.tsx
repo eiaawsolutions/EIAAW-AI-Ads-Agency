@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AgentTerminal } from "@/components/marketing/agent-terminal";
+import { LiveDemoTerminal } from "@/components/marketing/live-demo-terminal";
 import { PlatformChip } from "@/components/platform/chip";
 
 const PLATFORMS = ["meta", "google", "tiktok", "linkedin", "microsoft", "youtube", "apple"];
@@ -67,7 +67,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="lg:pl-8">
-              <AgentTerminal />
+              <LiveDemoTerminal />
             </div>
           </div>
         </div>
