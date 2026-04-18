@@ -7,17 +7,6 @@ const MODULES = [
   { n: "06", t: "Tenant isolation",     d: "Org-scoped rows + Postgres RLS. No cross-tenant reads. SOC 2 Type II readiness built in." },
 ];
 
-const STACK = [
-  ["Frontend",   "Next.js 15 · App Router · React 19 · Tailwind · shadcn/ui"],
-  ["Backend",    "Next.js Route Handlers · Prisma 6 · Postgres 18"],
-  ["AI",         "Anthropic Opus 4.7 + Haiku 4.5 · prompt caching · JSON-schema contracts"],
-  ["Auth",       "NextAuth v5 · Google OIDC · JWT sessions · JITP for enterprise"],
-  ["Billing",    "Stripe subscriptions · webhook-driven · usage-capped tiers"],
-  ["Deploy",     "Railway · Postgres plugin · auto-deploy on push · healthcheck-gated"],
-  ["Observability", "Structured logs · per-run AgentRun audit · Sentry-ready · OpenTelemetry hooks"],
-  ["Security",   "OWASP Top 10 · CSP · HSTS · X-Frame-Options · rate-limited"],
-];
-
 export const metadata = { title: "Platform" };
 
 export default function PlatformPage() {
@@ -62,26 +51,6 @@ export default function PlatformPage() {
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* STACK TABLE */}
-      <section className="container mt-24">
-        <div className="max-w-2xl mb-10">
-          <span className="eyebrow">Stack</span>
-          <h2 className="mt-4 text-3xl display">
-            Boring where it should be.
-            <br />
-            <span className="text-muted-foreground">Precise everywhere else.</span>
-          </h2>
-        </div>
-        <div className="rounded-lg border border-border overflow-hidden">
-          {STACK.map(([k, v], i) => (
-            <div key={k} className={`grid grid-cols-[180px_1fr] px-5 py-3.5 ${i > 0 ? "hairline-t" : ""}`}>
-              <span className="eyebrow">{k}</span>
-              <span className="mono text-sm text-foreground">{v}</span>
-            </div>
-          ))}
         </div>
       </section>
 
