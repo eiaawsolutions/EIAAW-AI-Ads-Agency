@@ -47,7 +47,7 @@ const TIERS = [
 const FAQ = [
   ["Do you guarantee results?", "No. We build performance-optimized campaigns driven by predictive AI and benchmarked to outperform market averages. Results depend on creative, offer, and category."],
   ["Can I bring my own ad accounts?", "Yes. We use OAuth — your credentials, your data, your ad accounts. Tokens are encrypted at rest."],
-  ["Which platforms are supported today?", "All 7 adapters ship in the beta: Meta, Google Ads, TikTok, LinkedIn, Microsoft, YouTube, Apple Ads. Real API wiring is rolling out one platform at a time — Meta is first."],
+  ["Which platforms are supported today?", "Meta is in GA. Google + LinkedIn enter private preview this quarter. TikTok, Microsoft, YouTube, and Apple are on the roadmap with adapters scaffolded — Enterprise pilots can request priority. Strategy and creative agents are platform-agnostic and work today across all seven."],
   ["What happens after the 14-day trial?", "Your workspace stays read-only if you don't subscribe. You can export everything. Nothing is deleted for 90 days."],
 ];
 

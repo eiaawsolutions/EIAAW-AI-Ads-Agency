@@ -46,7 +46,7 @@ export default function HomePage() {
             <div>
               <Badge variant="outline" className="mb-6">
                 <span className="live-dot" />
-                v0.1 · private beta
+                Design partners — 12 of 25 slots remaining
               </Badge>
               <h1 className="display text-4xl md:text-5xl lg:text-6xl text-balance text-foreground">
                 The runtime for an
