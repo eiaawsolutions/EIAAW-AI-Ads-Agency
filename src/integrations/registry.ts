@@ -1,7 +1,7 @@
 import { Platform } from "@prisma/client";
 import type { PlatformAdapter } from "./types";
 
-import { metaAdapter } from "./meta";
+import { metaAdapter } from "./meta-adapter";
 import { googleAdapter } from "./google";
 import { tiktokAdapter } from "./tiktok";
 import { linkedinAdapter } from "./linkedin";
