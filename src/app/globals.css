@@ -154,6 +154,42 @@
     color: hsl(var(--foreground));
   }
 
+  .legal-prose {
+    @apply text-sm text-muted-foreground leading-relaxed;
+  }
+  .legal-prose h1 {
+    @apply display text-3xl md:text-4xl text-foreground text-balance mb-2;
+  }
+  .legal-prose h2 {
+    @apply text-lg font-medium text-foreground mt-12 mb-3;
+  }
+  .legal-prose h3 {
+    @apply text-sm font-medium text-foreground uppercase tracking-wider mt-6 mb-2;
+    letter-spacing: 0.06em;
+  }
+  .legal-prose p { @apply my-3; }
+  .legal-prose ul { @apply my-3 space-y-1.5 list-none; }
+  .legal-prose ul > li {
+    @apply pl-4 relative;
+  }
+  .legal-prose ul > li::before {
+    content: "·";
+    @apply absolute left-0 text-muted-foreground/60;
+  }
+  .legal-prose a {
+    @apply text-foreground underline underline-offset-2 decoration-border-strong hover:decoration-foreground;
+  }
+  .legal-prose strong { @apply text-foreground font-medium; }
+  .legal-prose code {
+    @apply mono text-xs bg-surface-1 border border-border rounded px-1 py-0.5 text-foreground;
+  }
+  .legal-prose .meta {
+    @apply mono text-2xs text-muted-foreground tabular mb-8;
+  }
+  .legal-prose hr {
+    @apply my-12 border-border;
+  }
+
   .fade-in {
     animation: fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
