@@ -14,8 +14,18 @@ export function costOf(model: string, tokensIn: number, tokensOut: number): numb
 }
 
 /**
+ * Prompt registry — every system prompt has a version string. The version
+ * lands in AgentRun.output._meta so we can reconstruct exact behavior for
+ * any past run, and diff quality between prompt revisions.
+ */
+export const PROMPT_VERSION = "2026.04.18-1";
+
+/**
  * Invoke Claude with a JSON-response contract. Returns parsed JSON or
  * falls back to a structured error.
+ *
+ * The system prompt is marked for ephemeral cache — repeat calls with the
+ * same system prompt within 5 minutes pay 10% of the input-token price.
  */
 export async function jsonComplete<T>(opts: {
   system: string;
@@ -34,6 +44,7 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
     model: opts.model,
     maxTokens: opts.maxTokens ?? 2048,
     temperature: 0.2,
+    cacheSystem: true,
   });
 
   const costUsd = costOf(res.model, res.tokensIn, res.tokensOut);
@@ -41,7 +52,12 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
   if (res.stubbed) {
     return {
       ok: true,
-      output: stubOutput<T>(opts.schemaName),
+      output: withMeta(stubOutput<T>(opts.schemaName), {
+        schema: opts.schemaName,
+        promptVersion: PROMPT_VERSION,
+        model: res.model,
+        stubbed: true,
+      }),
       tokensIn: 0,
       tokensOut: 0,
       costUsd: 0,
@@ -53,7 +69,19 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
   try {
     const jsonText = res.text.trim().replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(jsonText) as T;
-    return { ok: true, output: parsed, tokensIn: res.tokensIn, tokensOut: res.tokensOut, costUsd, model: res.model };
+    return {
+      ok: true,
+      output: withMeta(parsed, {
+        schema: opts.schemaName,
+        promptVersion: PROMPT_VERSION,
+        model: res.model,
+        stubbed: false,
+      }),
+      tokensIn: res.tokensIn,
+      tokensOut: res.tokensOut,
+      costUsd,
+      model: res.model,
+    };
   } catch (err) {
     return {
       ok: false,
@@ -64,6 +92,17 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
       model: res.model,
     };
   }
+}
+
+/**
+ * Attach _meta to the agent output for reproducibility. Non-enumerable
+ * so it doesn't leak into UI rendering loops that just iterate keys.
+ */
+function withMeta<T>(payload: T, meta: { schema: string; promptVersion: string; model: string; stubbed: boolean }): T {
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    Object.defineProperty(payload, "_meta", { value: meta, enumerable: false, writable: false });
+  }
+  return payload;
 }
 
 /**
