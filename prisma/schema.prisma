@@ -103,6 +103,21 @@ enum ExperimentStatus {
   ABORTED
 }
 
+enum JobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum JobKind {
+  WIZARD_RUN
+  CAMPAIGN_LAUNCH
+  METRICS_SYNC
+  AGENT_CHAIN
+}
+
 enum ExecutionMode {
   AUTONOMOUS
   ASSISTED
@@ -187,6 +202,7 @@ model Organization {
   experiments  Experiment[]
   reports      Report[]
   auditLogs    AuditLog[]
+  jobs         JobRun[]
 
   @@index([slug])
 }
@@ -544,4 +560,57 @@ model EnterpriseLead {
 
   @@index([kind, createdAt])
   @@index([workEmail])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Durable job runtime
+//
+// JobRun holds an ordered pipeline of JobSteps. The poller picks up jobs
+// whose nextAt ≤ now() and executes their next PENDING step. Step outputs
+// are persisted so retries resume without re-doing prior work.
+// ─────────────────────────────────────────────────────────────
+
+model JobRun {
+  id            String    @id @default(cuid())
+  orgId         String
+  kind          JobKind
+  status        JobStatus @default(PENDING)
+  input         Json
+  cursor        Int       @default(0)
+  nextAt        DateTime  @default(now())
+  attempts      Int       @default(0)
+  error         String?
+  output        Json?
+  correlationId String?
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  steps JobStep[]
+
+  @@index([status, nextAt])
+  @@index([orgId, status])
+  @@index([correlationId])
+}
+
+model JobStep {
+  id        String    @id @default(cuid())
+  jobId     String
+  index     Int
+  kind      String
+  status    JobStatus @default(PENDING)
+  input     Json
+  output    Json?
+  error     String?
+  attempts  Int       @default(0)
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+
+  job JobRun @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, index])
+  @@index([jobId, status])
 }
