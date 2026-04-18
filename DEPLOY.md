@@ -105,6 +105,50 @@ git push -u origin main
 | 500 on `/api/agents/*` | `DATABASE_URL` set but no tables | Run `railway run npm run db:seed` once — or `railway run npx prisma db push` if schema never pushed |
 | `themeColor` warnings at build | Next 15 deprecation | Already fixed — in `viewport` export |
 
+## Cron wiring — durable job runtime
+
+The job runtime ships with a self-draining tick route: every invocation
+runs up to 4 ticks with 15s spacing, so a 1-minute cron gives us an
+effective 15s cadence on queue advancement. Interactive flows (wizard)
+fire an inline background tick on enqueue so they don't wait for cron.
+
+### Set up Railway Cron (1-minute cadence)
+
+1. Open the Railway project dashboard: [railway.app/project/519793db-d980-4032-bf2f-1b598e73b1a5](https://railway.app/project/519793db-d980-4032-bf2f-1b598e73b1a5)
+2. **+ New** → **Cron schedule** (or "Empty Service" → Settings → Cron)
+3. **Schedule**: `*/1 * * * *` (every minute — Railway's minimum)
+4. **Start command**:
+
+   ```bash
+   curl -fsS -X POST \
+     "$BASE_URL/api/worker/tick" \
+     -H "x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET"
+   ```
+
+5. **Variables** on that cron service:
+   - `BASE_URL=https://eiaaw-ai-ads-agency-production-6529.up.railway.app`
+     (or add a reference to the web service's `RAILWAY_PUBLIC_DOMAIN`)
+   - `EIAAW_WORKER_SECRET` → reference the same secret set on the web service
+6. **Image**: default (Alpine with curl is fine) — no Dockerfile needed
+
+### Verification
+
+After cron runs for ~1 minute:
+
+```bash
+# Response should show a non-empty ticks[] array.
+curl -s -X POST \
+  "https://eiaaw-ai-ads-agency-production-6529.up.railway.app/api/worker/tick" \
+  -H "x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET"
+# {"ok":true,"mode":"drain","ticks":[{...,"status":"idle"}],"durationMs":...}
+```
+
+### Debug modes
+
+- **`?mode=single`** — runs one tick only, returns in under a second.
+  Useful for smoke tests and dev.
+- **Default** — drains up to 4 × 15s = 60s. Used by cron.
+
 ## First production tweaks
 
 Once the deploy is green, these are the highest-leverage follow-ups:

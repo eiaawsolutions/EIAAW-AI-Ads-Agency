@@ -46,6 +46,7 @@ SUITE("jobs executor — live DB", () => {
     const { id } = await enqueueJob({
       orgId,
       kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
       input: { test: "single" },
       steps: [{ kind: "test.ok", input: { hello: "world" } }],
     });
@@ -65,6 +66,7 @@ SUITE("jobs executor — live DB", () => {
     const { id } = await enqueueJob({
       orgId,
       kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
       input: {},
       steps: [
         { kind: "test.ok", input: { a: 1 } },
@@ -88,6 +90,7 @@ SUITE("jobs executor — live DB", () => {
     const { id } = await enqueueJob({
       orgId,
       kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
       input: {},
       steps: [{ kind: "test.flaky", input: {} }],
     });
@@ -108,6 +111,7 @@ SUITE("jobs executor — live DB", () => {
     const { id } = await enqueueJob({
       orgId,
       kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
       input: {},
       steps: [{ kind: "test.does-not-exist", input: {} }],
     });
@@ -123,6 +127,7 @@ SUITE("jobs executor — live DB", () => {
     const { id } = await enqueueJob({
       orgId,
       kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
       input: {},
       correlationId: cid,
       steps: [{ kind: "test.ok", input: {} }],
@@ -130,5 +135,55 @@ SUITE("jobs executor — live DB", () => {
 
     const found = await db.jobRun.findFirst({ where: { correlationId: cid } });
     expect(found?.id).toBe(id);
+  });
+
+  it("drainQueue processes multiple steps in one call", async () => {
+    const { id } = await enqueueJob({
+      orgId,
+      kind: JobKind.AGENT_CHAIN,
+      fireImmediate: false,
+      input: {},
+      steps: [
+        { kind: "test.ok", input: { n: 1 } },
+        { kind: "test.ok", input: { n: 2 } },
+        { kind: "test.ok", input: { n: 3 } },
+      ],
+    });
+
+    const { drainQueue } = await import("@/jobs/executor");
+    // maxTicks: 10 so we have headroom even if other orphaned jobs are in
+    // the queue from earlier tests in this file.
+    await drainQueue({ maxTicks: 10, spacingMs: 0, deadlineMs: 20_000 });
+
+    const job = await db.jobRun.findUnique({ where: { id } });
+    expect(job?.status).toBe(JobStatus.SUCCEEDED);
+    expect(job?.cursor).toBe(3);
+  });
+
+  it("drainQueue exits early when the queue is idle", async () => {
+    const { drainQueue } = await import("@/jobs/executor");
+    const { ticks, durationMs } = await drainQueue({ maxTicks: 4, spacingMs: 100, deadlineMs: 5_000 });
+    // Idle queue → first tick is 'idle', loop exits immediately, no sleep.
+    expect(ticks).toHaveLength(1);
+    expect(ticks[0].status).toBe("idle");
+    expect(durationMs).toBeLessThan(500);
+  });
+
+  it("enqueueJob with fireImmediate:true advances the queue without a tick call", async () => {
+    const { id } = await enqueueJob({
+      orgId,
+      kind: JobKind.AGENT_CHAIN,
+      // default fireImmediate: true — should trigger tickInBackground
+      input: {},
+      steps: [{ kind: "test.ok", input: { fire: true } }],
+    });
+
+    // Wait for the detached tick to finish. 1.5s is very generous for a
+    // single-step handler that does nothing but echo, even against the
+    // Railway proxy DB. If this still flakes, the hook isn't firing.
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const job = await db.jobRun.findUnique({ where: { id } });
+    expect(job?.status).toBe(JobStatus.SUCCEEDED);
   });
 });

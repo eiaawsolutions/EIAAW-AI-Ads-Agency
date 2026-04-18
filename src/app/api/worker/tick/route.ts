@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
-import { runTick } from "@/jobs/executor";
+import { drainQueue, runTick } from "@/jobs/executor";
 
 /**
- * POST /api/_internal/worker/tick
+ * POST /api/worker/tick
  *
- * Job-queue poller. Invoked by Railway's scheduler (every ~10s in prod)
- * or manually via curl for dev. Single-shot: picks one ready job, runs
- * one step, returns a summary.
+ * Job-queue poller. Invoked by Railway Cron (1-min cadence). Each hit
+ * drains up to 4 ticks with 15s spacing — effective 15s cadence for
+ * background work inside Railway's 60s HTTP ceiling.
  *
- * Auth: shared secret via X-EIAAW-Worker-Secret header. Cron jobs on
- * Railway can set this via a scheduled service env var.
+ * Query params:
+ *   ?mode=single  — single-shot runTick (useful for dev/smoke, fast reply)
+ *   default       — drainQueue (max 4 ticks × 15s)
+ *
+ * Auth: shared secret via X-EIAAW-Worker-Secret header. Locked down
+ * whenever EIAAW_WORKER_SECRET is set (always, in production).
  */
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,9 +25,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const mode = new URL(req.url).searchParams.get("mode");
+
   try {
-    const result = await runTick();
-    return NextResponse.json({ ok: true, ...result });
+    if (mode === "single") {
+      const tick = await runTick();
+      return NextResponse.json({ ok: true, mode: "single", ...tick });
+    }
+
+    const drained = await drainQueue();
+    return NextResponse.json({ ok: true, mode: "drain", ...drained });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : String(err) },
@@ -32,7 +43,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Allow GET for manual smoke checks (dev only, no side effects if secret set).
+// GET for manual smoke checks — same auth requirement.
 export async function GET(req: Request) {
   return POST(req);
 }
