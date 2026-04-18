@@ -48,7 +48,7 @@ In the Railway dashboard, on the new web service:
 - Add another reference for **`DIRECT_URL`** → same Postgres → `DATABASE_URL`
 - Add raw variables:
 
-```
+```dotenv
 AUTH_SECRET=XBAtMY6L+AEE8hcioYJ4ml7pWsJEj/ax74RjzHw0agE=
 NEXT_PUBLIC_APP_URL=https://<your-railway-domain>
 NODE_ENV=production
@@ -76,7 +76,7 @@ Open the domain in a browser: marketing site renders, onboarding wizard works, d
 
 ### 1. Create GitHub repo
 
-- https://github.com/new → name `eiaaw-ads-agency` → Private → Create
+- Open [github.com/new](https://github.com/new) → name `eiaaw-ads-agency` → Private → Create
 - Back in terminal:
 
 ```bash
@@ -87,18 +87,18 @@ git push -u origin main
 
 ### 2. Connect Railway
 
-- https://railway.app → your project (the one with Postgres)
+- Open [railway.app](https://railway.app) → your project (the one with Postgres)
 - **+ New** → **Deploy from GitHub repo** → pick `eiaaw-ads-agency`
 - Railway detects `railway.json`, starts building
 
-### 3-7. Same as Option A, steps 5-7 above.
+### 3-7. Same as Option A, steps 5-7 above
 
 ---
 
 ## What could go wrong
 
 | Symptom | Cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | Build fails: `DATABASE_URL must be non-empty` | Variable not set on web service | Add a reference to the Postgres plugin |
 | Healthcheck 503 after deploy | Migration ran but service can't reach DB | Check Postgres plugin is running; ensure `DATABASE_URL` uses internal host (`postgres.railway.internal`) not proxy |
 | Build fails at `prisma generate` | `postinstall` couldn't find schema | Ensure `prisma/schema.prisma` is committed (it is) |
