@@ -2,9 +2,9 @@ import Link from "next/link";
 import { LogoWordmark } from "@/components/brand/logo";
 
 const COLS: { title: string; links: [string, string][] }[] = [
-  { title: "Platform", links: [["Agents", "/agents"], ["Integrations", "/integrations"], ["Pricing", "/pricing"], ["Changelog", "/changelog"]] },
+  { title: "Platform", links: [["Agents", "/agents"], ["Integrations", "/integrations"], ["Platform", "/platform"], ["Pricing", "/pricing"]] },
   { title: "Company", links: [["About", "/about"], ["Customers", "/customers"], ["Careers", "/careers"], ["Contact", "/contact"]] },
-  { title: "Resources", links: [["Docs", "/docs"], ["API", "/api"], ["Status", "/status"], ["Trust", "/trust"]] },
+  { title: "Resources", links: [["Docs", "/docs"], ["Changelog", "/changelog"], ["Status", "/status"], ["Trust", "/trust"]] },
   { title: "Legal", links: [["Privacy", "/legal/privacy"], ["Terms", "/legal/terms"], ["DPA", "/trust#dpa"], ["Security", "/trust"]] },
 ];
 
