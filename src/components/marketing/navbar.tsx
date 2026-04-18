@@ -17,6 +17,9 @@ export function MarketingNavbar() {
             <Link href="/agents" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Agents
             </Link>
+            <Link href="/customers" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
+              Customers
+            </Link>
             <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-150">
               Pricing
             </Link>
