@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { encryptSecret } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rate-limit";
+import { enqueueAuditFor } from "@/jobs/audit-trigger";
 
 export async function GET(req: Request, ctx: { params: Promise<{ platform: string }> }) {
   const session = await auth();
@@ -66,6 +67,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
       scopes: token.scopes,
       status: "connected",
     },
+  });
+
+  // Auto-trigger an audit on platform connect. Best-effort and non-blocking:
+  // the 24h dedup floor in enqueueAuditFor handles reconnect loops, and any
+  // failure here must not turn a successful OAuth into a redirect error.
+  enqueueAuditFor(membership.orgId, "connect", { actorId: userId }).catch((err) => {
+    console.warn("[audit-trigger:connect] enqueue failed:", err instanceof Error ? err.message : err);
   });
 
   return NextResponse.redirect(

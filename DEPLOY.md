@@ -158,6 +158,46 @@ curl -s -X POST \
   Useful for smoke tests and dev.
 - **Default** — drains up to 4 × 15s = 60s. Used by cron.
 
+### Weekly audit sweep (Layer 3 of audit auto-trigger)
+
+`POST /api/cron/weekly-audits` enqueues an `ads-audit` `JobRun` for every
+org whose latest successful audit is older than 7 days. The 24h dedup
+floor in `enqueueAuditFor` makes the endpoint idempotent — running it
+hourly would still only audit each org weekly.
+
+Layered triggers, lowest to highest cadence:
+
+- **Manual** — user clicks "Run audit" on the Audit page → `POST /api/audits/trigger`.
+- **Connect-trigger** — OAuth callback fires `enqueueAuditFor(orgId, "connect")`
+  after a successful integration upsert. First-touch onboarding moment.
+- **Weekly cron** — this endpoint, called by a Railway cron service.
+
+To provision the weekly cron, add a second Railway cron service alongside
+`eiaaw-worker-cron` (or reuse the same alpine/curl pattern):
+
+1. **+ New** → **Empty Service** → Source: Docker `alpine/curl:latest`
+2. **Settings → Deploy**:
+   - **Cron Schedule**: `0 2 * * 1`  (Monday 02:00 UTC)
+   - **Custom Start Command**:
+
+     ```bash
+     sh -c "curl -fsS -X POST \"$BASE_URL/api/cron/weekly-audits\" -H \"x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET\" || echo \"curl exit=$?\""
+     ```
+
+3. **Variables**: same `BASE_URL` + `EIAAW_WORKER_SECRET` as the worker cron.
+
+Verification:
+
+```bash
+curl -s -X POST \
+  "https://eiaaw-ai-ads-agency-production-6529.up.railway.app/api/cron/weekly-audits" \
+  -H "x-eiaaw-worker-secret: $EIAAW_WORKER_SECRET"
+# { "ok":true, "total":N, "enqueued":n, "skipped":n, "fresh":n, "results":[...] }
+```
+
+`fresh` means an audit succeeded in the last 7 days; `skipped` means the
+24h dedup floor caught a duplicate.
+
 ## First production tweaks
 
 Once the deploy is green, these are the highest-leverage follow-ups:
