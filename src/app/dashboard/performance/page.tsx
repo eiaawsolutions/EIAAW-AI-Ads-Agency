@@ -2,31 +2,90 @@ import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PlatformChip } from "@/components/platform/chip";
 import { db } from "@/lib/db";
+import { getActiveOrgOrRedirect } from "@/lib/active-org";
 
 export const metadata = { title: "Performance" };
 export const dynamic = "force-dynamic";
 
-async function loadMetrics() {
-  const grouped = await db.metricDaily
-    .groupBy({
-      by: ["platform"],
-      _sum: { impressions: true, clicks: true, conversions: true, spend: true, revenue: true },
-    })
-    .catch(() => [] as { platform: string; _sum: Record<string, number | null> }[]);
-  return grouped;
+const MS_PER_DAY = 86_400_000;
+
+function pctDelta(current: number, prior: number): number | undefined {
+  if (prior === 0) return undefined;
+  return ((current - prior) / prior) * 100;
 }
 
 export default async function PerformancePage() {
-  const metrics = await loadMetrics();
+  const ctx = await getActiveOrgOrRedirect();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start30 = new Date(today.getTime() - 29 * MS_PER_DAY);
+  const startPrior30 = new Date(today.getTime() - 59 * MS_PER_DAY);
+
+  const [grouped, current, prior] = await Promise.all([
+    db.metricDaily.groupBy({
+      by: ["platform"],
+      where: { campaign: { orgId: ctx.orgId }, date: { gte: start30 } },
+      _sum: { impressions: true, clicks: true, conversions: true, spend: true, revenue: true },
+    }),
+    db.metricDaily.aggregate({
+      where: { campaign: { orgId: ctx.orgId }, date: { gte: start30 } },
+      _sum: { impressions: true, clicks: true, conversions: true, spend: true, revenue: true },
+    }),
+    db.metricDaily.aggregate({
+      where: { campaign: { orgId: ctx.orgId }, date: { gte: startPrior30, lt: start30 } },
+      _sum: { impressions: true, clicks: true, conversions: true, spend: true, revenue: true },
+    }),
+  ]);
+
+  const cur = {
+    impressions: current._sum.impressions ?? 0,
+    clicks: current._sum.clicks ?? 0,
+    conversions: current._sum.conversions ?? 0,
+    spend: (current._sum.spend ?? 0) / 100,
+    revenue: (current._sum.revenue ?? 0) / 100,
+  };
+  const prv = {
+    impressions: prior._sum.impressions ?? 0,
+    clicks: prior._sum.clicks ?? 0,
+    spend: (prior._sum.spend ?? 0) / 100,
+    revenue: (prior._sum.revenue ?? 0) / 100,
+  };
+  const roas = cur.spend > 0 ? cur.revenue / cur.spend : 0;
+  const priorRoas = prv.spend > 0 ? prv.revenue / prv.spend : 0;
+  const cpm = cur.impressions > 0 ? (cur.spend / cur.impressions) * 1000 : 0;
+  const priorCpm = prv.impressions > 0 ? (prv.spend / prv.impressions) * 1000 : 0;
+  const ctr = cur.impressions > 0 ? (cur.clicks / cur.impressions) * 100 : 0;
+  const priorCtr = prv.impressions > 0 ? (prv.clicks / prv.impressions) * 100 : 0;
+
   return (
     <>
       <DashboardTopbar title="Performance" subtitle="All campaigns · last 30 days" />
       <main className="p-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard label="Revenue" value="$164,892" delta={18.2} accent />
-          <StatCard label="ROAS" value="3.42×" delta={12.4} tone="lime" />
-          <StatCard label="CPM" value="$12.40" delta={-2.1} />
-          <StatCard label="CTR" value="1.48%" delta={0.6} tone="coral" />
+          <StatCard
+            label="Revenue"
+            value={cur.revenue > 0 ? `$${Math.round(cur.revenue).toLocaleString()}` : "—"}
+            delta={pctDelta(cur.revenue, prv.revenue)}
+            accent
+          />
+          <StatCard
+            label="ROAS"
+            value={roas > 0 ? `${roas.toFixed(2)}×` : "—"}
+            delta={pctDelta(roas, priorRoas)}
+            tone="lime"
+          />
+          <StatCard
+            label="CPM"
+            value={cpm > 0 ? `$${cpm.toFixed(2)}` : "—"}
+            delta={pctDelta(cpm, priorCpm) !== undefined ? -pctDelta(cpm, priorCpm)! : undefined}
+          />
+          <StatCard
+            label="CTR"
+            value={ctr > 0 ? `${ctr.toFixed(2)}%` : "—"}
+            delta={pctDelta(ctr, priorCtr)}
+            tone="coral"
+          />
         </div>
 
         <div className="rounded-lg border border-border overflow-hidden bg-card">
@@ -51,17 +110,17 @@ export default async function PerformancePage() {
                 </tr>
               </thead>
               <tbody>
-                {metrics.length === 0 ? (
+                {grouped.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-xs text-muted-foreground">
-                      No data yet. Seed the database to see metrics.
+                      No data yet. Connect a platform from Integrations to start ingesting metrics.
                     </td>
                   </tr>
                 ) : (
-                  metrics.map((m) => {
+                  grouped.map((m) => {
                     const spend = (m._sum.spend ?? 0) / 100;
                     const rev = (m._sum.revenue ?? 0) / 100;
-                    const roas = rev / Math.max(spend, 1);
+                    const r = spend > 0 ? rev / spend : 0;
                     return (
                       <tr key={m.platform} className="hairline-t hover:bg-surface-1/60 transition-colors duration-150">
                         <td className="px-5 py-3">
@@ -77,13 +136,13 @@ export default async function PerformancePage() {
                           {(m._sum.conversions ?? 0).toLocaleString()}
                         </td>
                         <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
-                          ${spend.toLocaleString()}
+                          ${Math.round(spend).toLocaleString()}
                         </td>
                         <td className="px-5 py-3 mono text-xs tabular text-right text-foreground/90">
-                          ${rev.toLocaleString()}
+                          ${Math.round(rev).toLocaleString()}
                         </td>
                         <td className="px-5 py-3 mono text-xs tabular text-right text-primary">
-                          {roas.toFixed(2)}×
+                          {r > 0 ? `${r.toFixed(2)}×` : "—"}
                         </td>
                       </tr>
                     );
