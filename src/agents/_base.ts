@@ -36,18 +36,18 @@ export async function jsonComplete<T>(opts: {
 }): Promise<AgentResult<T>> {
   const system = `${opts.system}
 
-You MUST respond with a single JSON object matching the "${opts.schemaName}" contract. No prose, no markdown, no code fences — raw JSON only.`;
+You MUST respond with a single JSON object matching the "${opts.schemaName}" contract. No prose, no markdown, no code fences — raw JSON only. Keep prose fields concise to avoid truncation.`;
+
+  const initialMaxTokens = opts.maxTokens ?? 4096;
 
   const res = await complete({
     system,
     user: opts.user,
     model: opts.model,
-    maxTokens: opts.maxTokens ?? 2048,
+    maxTokens: initialMaxTokens,
     temperature: 0.2,
     cacheSystem: true,
   });
-
-  const costUsd = costOf(res.model, res.tokensIn, res.tokensOut);
 
   if (res.stubbed) {
     return {
@@ -66,12 +66,11 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
     };
   }
 
-  try {
-    const jsonText = res.text.trim().replace(/^```json\s*|\s*```$/g, "");
-    const parsed = JSON.parse(jsonText) as T;
+  const firstParse = tryParseJson<T>(res.text);
+  if (firstParse.ok) {
     return {
       ok: true,
-      output: withMeta(parsed, {
+      output: withMeta(firstParse.value, {
         schema: opts.schemaName,
         promptVersion: PROMPT_VERSION,
         model: res.model,
@@ -79,19 +78,75 @@ You MUST respond with a single JSON object matching the "${opts.schemaName}" con
       }),
       tokensIn: res.tokensIn,
       tokensOut: res.tokensOut,
-      costUsd,
-      model: res.model,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      error: `JSON parse failed: ${err instanceof Error ? err.message : String(err)}`,
-      tokensIn: res.tokensIn,
-      tokensOut: res.tokensOut,
-      costUsd,
+      costUsd: costOf(res.model, res.tokensIn, res.tokensOut),
       model: res.model,
     };
   }
+
+  // Retry once with doubled token cap when the model hit max_tokens — common
+  // cause of mid-string truncation that produces "Expected ',' or '}'" errors.
+  if (res.stopReason === "max_tokens") {
+    const retry = await complete({
+      system,
+      user: opts.user,
+      model: opts.model,
+      maxTokens: Math.min(initialMaxTokens * 2, 8192),
+      temperature: 0.2,
+      cacheSystem: true,
+    });
+    const retryParse = tryParseJson<T>(retry.text);
+    const totalIn = res.tokensIn + retry.tokensIn;
+    const totalOut = res.tokensOut + retry.tokensOut;
+    const totalCost = costOf(res.model, res.tokensIn, res.tokensOut) + costOf(retry.model, retry.tokensIn, retry.tokensOut);
+    if (retryParse.ok) {
+      return {
+        ok: true,
+        output: withMeta(retryParse.value, {
+          schema: opts.schemaName,
+          promptVersion: PROMPT_VERSION,
+          model: retry.model,
+          stubbed: false,
+        }),
+        tokensIn: totalIn,
+        tokensOut: totalOut,
+        costUsd: totalCost,
+        model: retry.model,
+      };
+    }
+    return {
+      ok: false,
+      error: friendlyParseError(retryParse.error, retry.stopReason ?? res.stopReason),
+      tokensIn: totalIn,
+      tokensOut: totalOut,
+      costUsd: totalCost,
+      model: retry.model,
+    };
+  }
+
+  return {
+    ok: false,
+    error: friendlyParseError(firstParse.error, res.stopReason),
+    tokensIn: res.tokensIn,
+    tokensOut: res.tokensOut,
+    costUsd: costOf(res.model, res.tokensIn, res.tokensOut),
+    model: res.model,
+  };
+}
+
+function tryParseJson<T>(raw: string): { ok: true; value: T } | { ok: false; error: string } {
+  try {
+    const cleaned = raw.trim().replace(/^```json\s*|\s*```$/g, "");
+    return { ok: true, value: JSON.parse(cleaned) as T };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function friendlyParseError(rawErr: string, stopReason: string | null): string {
+  if (stopReason === "max_tokens") {
+    return "The agent's response was too long and got cut off. Try simplifying inputs or contact support if this keeps happening.";
+  }
+  return `The agent returned a malformed response. Try again — if it persists, the model may be having a bad day. (${rawErr})`;
 }
 
 /**

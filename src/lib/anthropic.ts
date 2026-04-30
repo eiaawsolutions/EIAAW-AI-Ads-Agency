@@ -14,6 +14,15 @@ export const MODELS = {
  * Agents use this; if ANTHROPIC_API_KEY is unset, returns a stub response
  * so the app remains functional in dev without external creds.
  */
+export type CompleteResult = {
+  text: string;
+  tokensIn: number;
+  tokensOut: number;
+  model: string;
+  stubbed: boolean;
+  stopReason: string | null;
+};
+
 export async function complete(opts: {
   system: string;
   user: string;
@@ -21,7 +30,7 @@ export async function complete(opts: {
   maxTokens?: number;
   temperature?: number;
   cacheSystem?: boolean;
-}): Promise<{ text: string; tokensIn: number; tokensOut: number; model: string; stubbed: boolean }> {
+}): Promise<CompleteResult> {
   if (!anthropic) {
     return {
       text: `[stub:${opts.model ?? MODELS.primary}] ${opts.user.slice(0, 120)}...`,
@@ -29,6 +38,7 @@ export async function complete(opts: {
       tokensOut: 0,
       model: opts.model ?? MODELS.primary,
       stubbed: true,
+      stopReason: "stub",
     };
   }
 
@@ -38,7 +48,7 @@ export async function complete(opts: {
 
   const res = await anthropic.messages.create({
     model: opts.model ?? MODELS.primary,
-    max_tokens: opts.maxTokens ?? 2048,
+    max_tokens: opts.maxTokens ?? 4096,
     temperature: opts.temperature ?? 0.3,
     system: system as never,
     messages: [{ role: "user", content: opts.user }],
@@ -55,5 +65,6 @@ export async function complete(opts: {
     tokensOut: res.usage.output_tokens,
     model: res.model,
     stubbed: false,
+    stopReason: res.stop_reason ?? null,
   };
 }

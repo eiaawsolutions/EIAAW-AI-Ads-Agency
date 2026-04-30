@@ -30,10 +30,12 @@ export const adsPlan: Agent<z.infer<typeof InputSchema>, Output> = {
   async run(_ctx, input) {
     return jsonComplete<Output>({
       schemaName: "AdsPlan",
+      maxTokens: 4096,
       system: `You are the Strategy Builder agent. Produce a quantitative media plan:
 funnel weights (TOF/MOF/BOF), platform allocation summing to 1.0, KPI targets
 grounded in category benchmarks, and a weekly rollout. Be conservative on week-1
-spend and escalate only after learning thresholds are met.`,
+spend and escalate only after learning thresholds are met. Cap "rationale" at 3
+sentences and "milestones" at 12 entries with one-line "action" strings.`,
       user: JSON.stringify(input),
     });
   },
