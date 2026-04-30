@@ -1,7 +1,20 @@
 import { AgentKind, AgentRunStatus, Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 import { db } from "@/lib/db";
 import type { AgentContext, AgentResult } from "./types";
 import { getAgent } from "./registry";
+
+function formatErr(err: unknown): string {
+  if (err instanceof ZodError) {
+    return err.issues
+      .map((i) => {
+        const path = i.path.join(".") || "input";
+        return `${path}: ${i.message}`;
+      })
+      .join("; ");
+  }
+  return err instanceof Error ? err.message : String(err);
+}
 
 /**
  * Dispatch an agent run. Persists start/end, usage, and output to AgentRun
@@ -44,7 +57,7 @@ export async function dispatch<TInput, TOutput>(
 
     return result;
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = formatErr(err);
     await db.agentRun.update({
       where: { id: run.id },
       data: { status: AgentRunStatus.FAILED, error: message, endedAt: new Date() },
