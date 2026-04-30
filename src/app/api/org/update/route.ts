@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 const Body = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -24,19 +24,12 @@ const Body = z.object({
  * updated org so the client can refresh.
  */
 export async function POST(req: Request) {
-  const session = await auth();
-  const userId = session?.user && "id" in session.user ? (session.user as { id: string }).id : undefined;
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const m = await db.membership.findFirst({
-    where: { userId },
-    orderBy: { createdAt: "asc" },
-    include: { org: true },
-  });
-  if (!m) return NextResponse.json({ error: "No org" }, { status: 400 });
-  if (m.role !== "OWNER" && m.role !== "ADMIN") {
+  const ctx = await resolveAuthedOrg();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (ctx.role !== "OWNER" && ctx.role !== "ADMIN") {
     return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
   }
+  const { orgId, userId, org } = ctx;
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
@@ -47,22 +40,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
-  if (data.slug && data.slug !== m.org.slug) {
+  if (data.slug && data.slug !== org.slug) {
     const existing = await db.organization.findUnique({ where: { slug: data.slug } });
     if (existing) return NextResponse.json({ error: "Slug already taken" }, { status: 409 });
   }
 
   try {
     const updated = await db.organization.update({
-      where: { id: m.orgId },
+      where: { id: orgId },
       data,
     });
     await db.auditLog.create({
       data: {
-        orgId: m.orgId,
+        orgId,
         actorId: userId,
         action: "org.update",
-        target: m.orgId,
+        target: orgId,
         meta: data,
       },
     });

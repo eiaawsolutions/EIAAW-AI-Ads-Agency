@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resolveOrgId } from "@/lib/resolve-org";
 
 /**
  * GET /api/jobs/:id
  *
  * Lookup a job by id OR correlationId (the UI polls this — the wizard
  * enqueues with a correlationId so it doesn't need to store a returned id).
- * Returns status, cursor, per-step results. 404 if not found or not in
- * caller's org.
+ * Returns status, cursor, per-step results.
+ *
+ * Auth model:
+ *   - Authenticated: org-scoped to the caller's primary membership
+ *   - Unauthenticated: falls back to the demo org (slug "demo") so the
+ *     wizard's polling works before the user signs in. This mirrors the
+ *     /api/agents/_handler demo-org behavior and carries the same caveat
+ *     (demo data is shared, not isolated).
+ *   - correlationId acts as a weak bearer — unguessable at 8+36 random
+ *     chars, but not a hard secret. Production should switch to an
+ *     explicit auth-required mode once we require sign-up to start the
+ *     wizard.
  */
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const userId = (session.user as { id: string }).id;
-  const membership = await db.membership.findFirst({ where: { userId } });
-  if (!membership) return NextResponse.json({ error: "No org" }, { status: 400 });
+  const resolved = await resolveOrgId();
+  if (!resolved) return NextResponse.json({ error: "no org context" }, { status: 400 });
+  const { orgId } = resolved;
 
   const { id } = await ctx.params;
 
   const job = await db.jobRun.findFirst({
     where: {
-      orgId: membership.orgId,
+      orgId,
       OR: [{ id }, { correlationId: id }],
     },
     include: {

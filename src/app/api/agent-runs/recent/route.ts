@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 /**
  * GET /api/agent-runs/recent?limit=40&since=<iso>
@@ -10,12 +10,8 @@ import { db } from "@/lib/db";
  * lets the client request only newer rows.
  */
 export async function GET(req: Request) {
-  const session = await auth();
-  const userId = session?.user && "id" in session.user ? (session.user as { id: string }).id : undefined;
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const m = await db.membership.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
-  if (!m) return NextResponse.json({ error: "No org" }, { status: 400 });
+  const ctx = await resolveAuthedOrg();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") ?? 40)));
@@ -24,7 +20,7 @@ export async function GET(req: Request) {
 
   const rows = await db.agentRun.findMany({
     where: {
-      orgId: m.orgId,
+      orgId: ctx.orgId,
       ...(since && !Number.isNaN(since.getTime()) ? { createdAt: { gt: since } } : {}),
     },
     orderBy: { createdAt: "desc" },

@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
 import { Platform } from "@prisma/client";
 import { getAdapter } from "@/integrations/registry";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { encryptSecret } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rate-limit";
 import { enqueueAuditFor } from "@/jobs/audit-trigger";
+import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 export async function GET(req: Request, ctx: { params: Promise<{ platform: string }> }) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/signin`);
-
-  const userId = (session.user as { id: string }).id;
+  const orgCtx = await resolveAuthedOrg();
+  if (!orgCtx) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/signin`);
+  const { orgId, userId } = orgCtx;
 
   // IP-scoped rate limit to prevent OAuth code-stuffing brute force.
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
@@ -34,9 +33,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/${platform}/callback`;
   const token = await getAdapter(p).exchangeCode(code, redirectUri);
 
-  const membership = await db.membership.findFirst({ where: { userId } });
-  if (!membership) return NextResponse.json({ error: "No org" }, { status: 400 });
-
   // Encrypt tokens at rest — AES-256-GCM, `v1:` prefix for future rotation.
   const accessEnc = encryptSecret(token.accessToken);
   const refreshEnc = token.refreshToken ? encryptSecret(token.refreshToken) : null;
@@ -44,7 +40,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
   await db.integration.upsert({
     where: {
       orgId_platform_externalId: {
-        orgId: membership.orgId,
+        orgId,
         platform: p,
         externalId: token.externalId ?? "default",
       },
@@ -57,7 +53,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
       status: "connected",
     },
     create: {
-      orgId: membership.orgId,
+      orgId,
       platform: p,
       externalId: token.externalId ?? "default",
       displayName: token.displayName,
@@ -72,7 +68,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
   // Auto-trigger an audit on platform connect. Best-effort and non-blocking:
   // the 24h dedup floor in enqueueAuditFor handles reconnect loops, and any
   // failure here must not turn a successful OAuth into a redirect error.
-  enqueueAuditFor(membership.orgId, "connect", { actorId: userId }).catch((err) => {
+  enqueueAuditFor(orgId, "connect", { actorId: userId }).catch((err) => {
     console.warn("[audit-trigger:connect] enqueue failed:", err instanceof Error ? err.message : err);
   });
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 /**
  * GET /api/stripe/portal
@@ -13,14 +13,10 @@ import { db } from "@/lib/db";
 export async function GET() {
   if (!stripe) return NextResponse.json({ error: "Stripe not configured" }, { status: 501 });
 
-  const session = await auth();
-  const userId = session?.user && "id" in session.user ? (session.user as { id: string }).id : undefined;
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx = await resolveAuthedOrg();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const m = await db.membership.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
-  if (!m) return NextResponse.json({ error: "No org" }, { status: 400 });
-
-  const sub = await db.subscription.findUnique({ where: { orgId: m.orgId } });
+  const sub = await db.subscription.findUnique({ where: { orgId: ctx.orgId } });
   if (!sub?.stripeCustomerId) {
     return NextResponse.json({ error: "No Stripe customer on file" }, { status: 404 });
   }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { AgentKind } from "@prisma/client";
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DAILY_CAP_USD } from "@/lib/cost-caps";
+import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 /**
  * GET /api/admin/usage
@@ -18,35 +18,27 @@ import { DAILY_CAP_USD } from "@/lib/cost-caps";
  * cost accounting matches reality. Also powers a future Settings widget.
  */
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const userId = (session.user as { id: string }).id;
-  const membership = await db.membership.findFirst({
-    where: { userId },
-    include: { org: { select: { id: true, name: true, plan: true } } },
-  });
-  if (!membership) return NextResponse.json({ error: "No org" }, { status: 400 });
+  const ctx = await resolveAuthedOrg();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { orgId, org } = ctx;
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
   const [agg, perAgent, recent] = await Promise.all([
     db.agentRun.aggregate({
-      where: { orgId: membership.orgId, createdAt: { gte: startOfDay } },
+      where: { orgId, createdAt: { gte: startOfDay } },
       _sum: { costUsd: true, tokensIn: true, tokensOut: true },
       _count: true,
     }),
     db.agentRun.groupBy({
       by: ["kind"],
-      where: { orgId: membership.orgId, createdAt: { gte: startOfDay } },
+      where: { orgId, createdAt: { gte: startOfDay } },
       _sum: { costUsd: true },
       _count: true,
     }),
     db.agentRun.findMany({
-      where: { orgId: membership.orgId },
+      where: { orgId },
       orderBy: { createdAt: "desc" },
       take: 10,
       select: {
@@ -63,14 +55,14 @@ export async function GET() {
     }),
   ]);
 
-  const cap = DAILY_CAP_USD[membership.org.plan];
+  const cap = DAILY_CAP_USD[org.plan];
   const spent = agg._sum.costUsd ?? 0;
 
   return NextResponse.json({
     org: {
-      id: membership.org.id,
-      name: membership.org.name,
-      plan: membership.org.plan,
+      id: org.id,
+      name: org.name,
+      plan: org.plan,
     },
     today: {
       spentUsd: Number(spent.toFixed(6)),
