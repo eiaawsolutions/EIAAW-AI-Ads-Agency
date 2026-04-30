@@ -39,6 +39,11 @@ const INITIAL: Omit<WizardState, "setStep" | "update" | "reset"> = {
   loading: false,
 };
 
+// Bump this when WizardState shape changes. Older persisted payloads are
+// dropped on rehydrate rather than feeding partial/incompatible data into
+// step components, which can crash the page during client hydration.
+const STORE_VERSION = 2;
+
 export const useWizard = create<WizardState>()(
   persist(
     (set) => ({
@@ -47,7 +52,17 @@ export const useWizard = create<WizardState>()(
       update: (patch) => set(patch),
       reset: () => set(INITIAL),
     }),
-    { name: "eiaaw-wizard" },
+    {
+      name: "eiaaw-wizard",
+      version: STORE_VERSION,
+      migrate: () => INITIAL,
+      partialize: (state) => {
+        // Persist only data — never the in-flight `loading` flag, which can
+        // get stuck `true` on a refresh during a request.
+        const { loading: _loading, ...rest } = state;
+        return rest as WizardState;
+      },
+    },
   ),
 );
 

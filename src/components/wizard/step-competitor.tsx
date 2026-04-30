@@ -67,13 +67,15 @@ export function StepCompetitor() {
               <span className="eyebrow">Top competitors</span>
               <span className="mono text-xs text-muted-foreground">{result.competitors?.length ?? 0}</span>
             </div>
-            {result.competitors?.map((c) => (
-              <div key={c.name} className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3 hairline-t first:border-t-0">
+            {result.competitors?.map((c, i) => (
+              <div key={`${c.name ?? "comp"}-${i}`} className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3 hairline-t first:border-t-0">
                 <div>
-                  <div className="text-sm font-medium text-foreground">{c.name}</div>
-                  <div className="mt-0.5 mono text-2xs text-muted-foreground">{c.topFormats.join(" · ")}</div>
+                  <div className="text-sm font-medium text-foreground">{c.name ?? "Unnamed"}</div>
+                  <div className="mt-0.5 mono text-2xs text-muted-foreground">
+                    {Array.isArray(c.topFormats) ? c.topFormats.join(" · ") : ""}
+                  </div>
                 </div>
-                <span className="mono text-xs text-primary tabular">{c.spendEstimate}</span>
+                <span className="mono text-xs text-primary tabular">{c.spendEstimate ?? ""}</span>
               </div>
             ))}
           </div>
@@ -84,8 +86,8 @@ export function StepCompetitor() {
                 <span className="eyebrow">Creative trends</span>
               </div>
               <ul className="p-5 space-y-2">
-                {result.trends?.map((t) => (
-                  <li key={t} className="flex items-start gap-2 text-sm text-foreground/90">
+                {result.trends?.map((t, i) => (
+                  <li key={`t-${i}`} className="flex items-start gap-2 text-sm text-foreground/90">
                     <span className="mono text-muted-foreground mt-0.5">→</span>
                     {t}
                   </li>
@@ -97,8 +99,8 @@ export function StepCompetitor() {
                 <span className="eyebrow">Whitespace</span>
               </div>
               <ul className="p-5 space-y-2">
-                {result.gaps?.map((g) => (
-                  <li key={g} className="flex items-start gap-2 text-sm text-foreground/90">
+                {result.gaps?.map((g, i) => (
+                  <li key={`g-${i}`} className="flex items-start gap-2 text-sm text-foreground/90">
                     <span className="text-primary mt-0.5">✦</span>
                     {g}
                   </li>
