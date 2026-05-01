@@ -9,18 +9,10 @@
  * see the resolved values because resolution happens at startup, not
  * per-request.
  */
-// Build marker — bump to force image rebuild after dedup.
-const BUILD_MARKER = "2026-05-01T05:40Z-src-move";
-
 export async function register() {
-  // eslint-disable-next-line no-console
-  console.log(
-    `[instrumentation] hook fired build=${BUILD_MARKER} runtime=${process.env.NEXT_RUNTIME ?? "unset"} resolver=${process.env.INFISICAL_RESOLVER_ENABLED ?? "unset"}`,
-  );
-
-  // In Next.js 15 standalone, NEXT_RUNTIME is sometimes unset on the
-  // node-server boot path. Treat anything that isn't explicitly "edge"
-  // as nodejs so the resolver still runs.
+  // Edge runtime can't reach Infisical's HTTP API and shouldn't mutate
+  // process.env. Skip it; edge bundles read values that node already
+  // resolved at startup.
   if (process.env.NEXT_RUNTIME === "edge") return;
 
   // Lazy import so the edge bundle never tries to load the SDK.
