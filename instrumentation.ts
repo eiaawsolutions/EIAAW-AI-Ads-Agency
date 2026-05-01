@@ -9,10 +9,13 @@
  * see the resolved values because resolution happens at startup, not
  * per-request.
  */
+// Build marker — bump to force image rebuild after dedup.
+const BUILD_MARKER = "2026-05-01T05:15Z";
+
 export async function register() {
   // eslint-disable-next-line no-console
   console.log(
-    `[instrumentation] hook fired (runtime=${process.env.NEXT_RUNTIME ?? "unset"}, resolver=${process.env.INFISICAL_RESOLVER_ENABLED ?? "unset"})`,
+    `[instrumentation] hook fired build=${BUILD_MARKER} runtime=${process.env.NEXT_RUNTIME ?? "unset"} resolver=${process.env.INFISICAL_RESOLVER_ENABLED ?? "unset"}`,
   );
 
   // In Next.js 15 standalone, NEXT_RUNTIME is sometimes unset on the
