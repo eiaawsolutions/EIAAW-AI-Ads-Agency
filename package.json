@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "client:create": "tsx scripts/create-client-account.ts",
+    "cleanup:google": "tsx scripts/cleanup-google-stale.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
