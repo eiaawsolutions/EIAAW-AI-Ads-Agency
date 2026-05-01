@@ -1,5 +1,5 @@
 "use client";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWizard } from "./wizard-store";
 
@@ -13,7 +13,8 @@ const STEPS = [
 ];
 
 export function StepWelcome() {
-  const setStep = useWizard((s) => s.setStep);
+  const { setStep, reset, brandName, dnaResult, planResult, competitorResult } = useWizard();
+  const hasProgress = Boolean(brandName || dnaResult || planResult || competitorResult);
   return (
     <div>
       <span className="eyebrow">Onboarding · 15 minutes</span>
@@ -39,10 +40,23 @@ export function StepWelcome() {
         ))}
       </div>
 
-      <div className="mt-12 flex items-center justify-center">
+      <div className="mt-12 flex items-center justify-center gap-3">
         <Button variant="secondary" size="lg" onClick={() => setStep("dna")}>
-          Begin <ArrowRight />
+          {hasProgress ? "Resume" : "Begin"} <ArrowRight />
         </Button>
+        {hasProgress && (
+          <Button
+            variant="ghost"
+            size="lg"
+            onClick={() => {
+              if (window.confirm("Discard your in-progress wizard state and start over?")) {
+                reset();
+              }
+            }}
+          >
+            <RotateCcw /> Start over
+          </Button>
+        )}
       </div>
     </div>
   );

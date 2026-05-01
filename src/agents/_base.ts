@@ -1,4 +1,4 @@
-import { complete, MODELS } from "@/lib/anthropic";
+import { complete, MODELS, structuredComplete } from "@/lib/anthropic";
 import type { AgentResult } from "./types";
 
 // Pricing per 1M tokens — update when Anthropic changes pricing.
@@ -36,7 +36,9 @@ export async function jsonComplete<T>(opts: {
 }): Promise<AgentResult<T>> {
   const system = `${opts.system}
 
-You MUST respond with a single JSON object matching the "${opts.schemaName}" contract. No prose, no markdown, no code fences — raw JSON only. Keep prose fields concise to avoid truncation.`;
+You MUST respond with a single JSON object matching the "${opts.schemaName}" contract. No prose, no markdown, no code fences — raw JSON only. Keep prose fields concise to avoid truncation.
+
+ALWAYS include a top-level "summary" string field: one sentence (≤120 chars) describing the most useful takeaway from this run, e.g. "Identified 3 high-intent personas with palette anchored on warm coral." This powers the activity feed.`;
 
   const initialMaxTokens = opts.maxTokens ?? 4096;
 
@@ -150,6 +152,80 @@ function friendlyParseError(rawErr: string, stopReason: string | null): string {
 }
 
 /**
+ * Structured-output variant of jsonComplete. Forces the model to emit
+ * a tool_use call whose input matches the JSON Schema, so we never have
+ * to parse free-form text. Eliminates the JSON parse-error class
+ * (truncation, unescaped quotes, code fences).
+ *
+ * Use this for any agent whose Output type is large enough that
+ * truncation has been observed (e.g. ADS_PLAN, ADS_AUDIT).
+ */
+export async function toolComplete<T>(opts: {
+  system: string;
+  user: string;
+  toolName: string;
+  toolDescription: string;
+  schema: Record<string, unknown>;
+  stubData: T;
+  model?: string;
+  maxTokens?: number;
+}): Promise<AgentResult<T>> {
+  const res = await structuredComplete<T>({
+    system: opts.system,
+    user: opts.user,
+    toolName: opts.toolName,
+    toolDescription: opts.toolDescription,
+    schema: opts.schema,
+    stubData: opts.stubData,
+    model: opts.model,
+    maxTokens: opts.maxTokens ?? 4096,
+    cacheSystem: true,
+  });
+
+  if (res.stubbed && res.data) {
+    return {
+      ok: true,
+      output: withMeta(res.data, {
+        schema: opts.toolName,
+        promptVersion: PROMPT_VERSION,
+        model: res.model,
+        stubbed: true,
+      }),
+      tokensIn: 0,
+      tokensOut: 0,
+      costUsd: 0,
+      model: res.model,
+      stubbed: true,
+    };
+  }
+
+  if (!res.data) {
+    return {
+      ok: false,
+      error: res.toolError ?? friendlyParseError("no tool block", res.stopReason),
+      tokensIn: res.tokensIn,
+      tokensOut: res.tokensOut,
+      costUsd: costOf(res.model, res.tokensIn, res.tokensOut),
+      model: res.model,
+    };
+  }
+
+  return {
+    ok: true,
+    output: withMeta(res.data, {
+      schema: opts.toolName,
+      promptVersion: PROMPT_VERSION,
+      model: res.model,
+      stubbed: false,
+    }),
+    tokensIn: res.tokensIn,
+    tokensOut: res.tokensOut,
+    costUsd: costOf(res.model, res.tokensIn, res.tokensOut),
+    model: res.model,
+  };
+}
+
+/**
  * Attach _meta to the agent output for reproducibility. Non-enumerable
  * so it doesn't leak into UI rendering loops that just iterate keys.
  */
@@ -167,6 +243,7 @@ function withMeta<T>(payload: T, meta: { schema: string; promptVersion: string; 
 function stubOutput<T>(schema: string): T {
   const stubs: Record<string, unknown> = {
     BrandDna: {
+      summary: "1 persona · 2 markets · palette anchored on #14B39B",
       businessGoals: ["sales", "leads"],
       valueProps: ["Premium quality", "Fast delivery", "30-day guarantee"],
       positioning: "Category-defining solution for discerning customers.",
@@ -178,12 +255,14 @@ function stubOutput<T>(schema: string): T {
       imageryStyle: "clean editorial with warm lighting",
     },
     AdsPlan: {
+      summary: "META 40% · GOOGLE 40% · TIKTOK 20% · target CPA $25",
       funnel: { tof: 0.5, mof: 0.3, bof: 0.2 },
       allocation: { META: 0.4, GOOGLE: 0.4, TIKTOK: 0.2 },
       kpis: { targetCpa: 25, targetRoas: 3.0, targetCtr: 1.5 },
       rationale: "Balanced TOF/BOF split with Meta + Google anchoring performance.",
     },
     Competitor: {
+      summary: "2 competitors mapped · 2 trends · 1 whitespace gap",
       competitors: [
         { name: "Alpha Co", spendEstimate: "$120k/mo", topFormats: ["Reels", "Search"] },
         { name: "Beta Ltd", spendEstimate: "$80k/mo", topFormats: ["Display", "YouTube"] },
@@ -192,12 +271,14 @@ function stubOutput<T>(schema: string): T {
       gaps: ["Owned content on Performance Max missing"],
     },
     AdCopy: {
+      summary: "2 ad concepts drafted (Proof, Benefit angles)",
       concepts: [
         { angle: "Proof", headline: "7,000 reviews. One honest formula.", body: "…", cta: "Shop now" },
         { angle: "Benefit", headline: "Clinical results in 30 days.", body: "…", cta: "Try risk-free" },
       ],
     },
     Forecast: {
+      summary: "3 scenarios · ROAS 2.7x – 4.5x at $5k spend",
       scenarios: [
         { label: "Conservative", spend: 5000, revenue: 13500, roas: 2.7, cpa: 28 },
         { label: "Moderate", spend: 5000, revenue: 17500, roas: 3.5, cpa: 22 },
@@ -205,6 +286,7 @@ function stubOutput<T>(schema: string): T {
       ],
     },
     Experiment: {
+      summary: "A/B test designed · n=2400 · primary metric ROAS",
       hypothesis: "Proof headline beats benefit headline on ROAS by ≥10%.",
       variants: [
         { key: "A", headline: "Benefit-led", trafficPct: 50 },
@@ -214,6 +296,7 @@ function stubOutput<T>(schema: string): T {
       primaryMetric: "roas",
     },
     AuditReport: {
+      summary: "Score 78/100 · 2 findings (1 P0 tracking, 1 P1 creative)",
       score: 78,
       findings: [
         { severity: "P0", area: "tracking", note: "CAPI not deduplicating Pixel events." },

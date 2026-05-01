@@ -68,3 +68,82 @@ export async function complete(opts: {
     stopReason: res.stop_reason ?? null,
   };
 }
+
+export type StructuredResult<T> = {
+  data: T | null;
+  tokensIn: number;
+  tokensOut: number;
+  model: string;
+  stubbed: boolean;
+  stopReason: string | null;
+  /** Set when the model refused to call the tool or returned a non-tool block. */
+  toolError: string | null;
+};
+
+/**
+ * Structured-output completion via Anthropic's tool_use. The model is
+ * forced to call a single tool whose `input_schema` matches `schema`,
+ * eliminating the entire JSON-parse class of failures (truncation,
+ * unescaped quotes, code fences). No text parsing required — the SDK
+ * delivers a typed object straight from the tool block.
+ *
+ * Stubbed when ANTHROPIC_API_KEY is unset; caller supplies stubData.
+ */
+export async function structuredComplete<T>(opts: {
+  system: string;
+  user: string;
+  toolName: string;
+  toolDescription: string;
+  schema: Record<string, unknown>;
+  stubData: T;
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+  cacheSystem?: boolean;
+}): Promise<StructuredResult<T>> {
+  if (!anthropic) {
+    return {
+      data: opts.stubData,
+      tokensIn: 0,
+      tokensOut: 0,
+      model: opts.model ?? MODELS.primary,
+      stubbed: true,
+      stopReason: "stub",
+      toolError: null,
+    };
+  }
+
+  const system = opts.cacheSystem !== false
+    ? [{ type: "text" as const, text: opts.system, cache_control: { type: "ephemeral" as const } }]
+    : opts.system;
+
+  const res = await anthropic.messages.create({
+    model: opts.model ?? MODELS.primary,
+    max_tokens: opts.maxTokens ?? 4096,
+    temperature: opts.temperature ?? 0.2,
+    system: system as never,
+    messages: [{ role: "user", content: opts.user }],
+    tools: [
+      {
+        name: opts.toolName,
+        description: opts.toolDescription,
+        input_schema: opts.schema as never,
+      },
+    ],
+    tool_choice: { type: "tool", name: opts.toolName },
+  });
+
+  const toolBlock = res.content.find((b) => b.type === "tool_use") as
+    | { type: "tool_use"; name: string; input: T }
+    | undefined;
+
+  return {
+    data: toolBlock ? (toolBlock.input as T) : null,
+    tokensIn: res.usage.input_tokens,
+    tokensOut: res.usage.output_tokens,
+    model: res.model,
+    stubbed: false,
+    stopReason: res.stop_reason ?? null,
+    toolError: toolBlock ? null : "model did not invoke the requested tool",
+  };
+}
