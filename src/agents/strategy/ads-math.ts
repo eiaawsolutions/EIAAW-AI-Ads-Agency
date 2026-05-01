@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Agent } from "../types";
 
 const InputSchema = z.object({
-  monthlyBudgetUsd: z.number().positive(),
+  monthlyBudget: z.number().positive(),
   cpcUsd: z.number().positive().default(1.2),
   conversionRate: z.number().min(0).max(1).default(0.03),
   averageOrderValueUsd: z.number().positive().default(65),
@@ -51,7 +51,7 @@ function forecast(
   i: z.infer<typeof InputSchema>,
   multiplier: number,
 ): { spend: number; revenue: number; roas: number; cpa: number } {
-  const spend = i.monthlyBudgetUsd;
+  const spend = i.monthlyBudget;
   const clicks = (spend / i.cpcUsd) * multiplier;
   const conversions = clicks * i.conversionRate;
   const revenue = conversions * i.averageOrderValueUsd;

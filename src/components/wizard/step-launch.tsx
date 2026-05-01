@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useWizard } from "./wizard-store";
 
 export function StepLaunch() {
-  const { brandName, platforms, monthlyBudgetUsd, objective, setStep } = useWizard();
+  const { brandName, platforms, monthlyBudget, currency, targetLocation, objective, setStep } = useWizard();
   const [launching, setLaunching] = useState(false);
 
   async function launch() {
@@ -34,7 +34,8 @@ export function StepLaunch() {
         {[
           ["Brand", brandName || "—"],
           ["Objective", objective],
-          ["Monthly budget", `$${monthlyBudgetUsd.toLocaleString()}`],
+          ["Target location", targetLocation || "—"],
+          ["Monthly budget", `${currency} ${monthlyBudget.toLocaleString()}`],
           ["Platforms", platforms.map((p) => p.toLowerCase()).join(" · ")],
         ].map(([k, v], i) => (
           <div key={k} className={`grid grid-cols-[180px_1fr] px-5 py-3.5 ${i > 0 ? "hairline-t" : ""}`}>

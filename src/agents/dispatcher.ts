@@ -4,6 +4,12 @@ import { db } from "@/lib/db";
 import type { AgentContext, AgentResult } from "./types";
 import { getAgent } from "./registry";
 
+function pickCurrency(input: unknown): string | null {
+  if (!input || typeof input !== "object") return null;
+  const c = (input as { currency?: unknown }).currency;
+  return typeof c === "string" && /^[A-Z]{3}$/.test(c) ? c : null;
+}
+
 function formatErr(err: unknown): string {
   if (err instanceof ZodError) {
     return err.issues
@@ -32,6 +38,7 @@ export async function dispatch<TInput, TOutput>(
       kind,
       status: AgentRunStatus.RUNNING,
       input: input as object,
+      currency: pickCurrency(input),
       startedAt: new Date(),
     },
   });

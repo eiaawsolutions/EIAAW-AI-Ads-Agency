@@ -10,7 +10,7 @@ import { useWizard } from "./wizard-store";
 type Scenario = { label: string; spend: number; revenue: number; roas: number; cpa: number };
 
 export function StepForecast() {
-  const { monthlyBudgetUsd, forecastResult, update, setStep } = useWizard();
+  const { monthlyBudget, currency, forecastResult, update, setStep } = useWizard();
   const [loading, setLoading] = useState(false);
 
   async function forecast() {
@@ -20,7 +20,7 @@ export function StepForecast() {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ monthlyBudgetUsd }),
+        body: JSON.stringify({ monthlyBudget, currency }),
       },
     );
     setLoading(false);
@@ -73,7 +73,7 @@ export function StepForecast() {
               <span className="mono text-sm text-foreground tabular">{formatCurrency(s.spend * 100)}</span>
               <span className="mono text-sm text-primary tabular">{formatCurrency(s.revenue * 100)}</span>
               <span className="mono text-sm text-foreground tabular text-right">{s.roas.toFixed(2)}×</span>
-              <span className="mono text-sm text-foreground tabular text-right">${s.cpa.toFixed(0)}</span>
+              <span className="mono text-sm text-foreground tabular text-right">{currency} {s.cpa.toFixed(0)}</span>
             </div>
           ))}
         </div>

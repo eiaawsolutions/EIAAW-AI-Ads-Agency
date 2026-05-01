@@ -5,7 +5,7 @@ import { toolComplete } from "../_base";
 
 const InputSchema = z.object({
   objective: z.enum(["SALES", "LEADS", "APP_INSTALLS", "TRAFFIC", "AWARENESS", "ENGAGEMENT"]),
-  monthlyBudgetUsd: z.number().positive(),
+  monthlyBudget: z.number().positive(),
   platforms: z.array(z.string()).min(1),
   targetCpa: z.number().optional(),
   targetRoas: z.number().optional(),

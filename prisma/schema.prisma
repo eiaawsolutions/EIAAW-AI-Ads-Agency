@@ -433,6 +433,7 @@ model AgentRun {
   tokensIn   Int            @default(0)
   tokensOut  Int            @default(0)
   costUsd    Float          @default(0)
+  currency   String?
   model      String?
   startedAt  DateTime?
   endedAt    DateTime?

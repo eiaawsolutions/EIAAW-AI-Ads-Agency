@@ -13,7 +13,7 @@ export type WizardState = {
   dnaResult?: Record<string, unknown>;
   // Plan
   objective: "SALES" | "LEADS" | "APP_INSTALLS" | "TRAFFIC" | "AWARENESS" | "ENGAGEMENT";
-  monthlyBudgetUsd: number;
+  monthlyBudget: number;
   platforms: string[];
   targetCpa?: number;
   targetRoas?: number;
@@ -36,7 +36,7 @@ const INITIAL: Omit<WizardState, "setStep" | "update" | "reset"> = {
   domain: "",
   dnaNotes: "",
   objective: "SALES",
-  monthlyBudgetUsd: 5000,
+  monthlyBudget: 5000,
   platforms: ["META", "GOOGLE"],
   targetLocation: "Worldwide",
   currency: "USD",
@@ -46,7 +46,7 @@ const INITIAL: Omit<WizardState, "setStep" | "update" | "reset"> = {
 // Bump this when WizardState shape changes. Older persisted payloads are
 // dropped on rehydrate rather than feeding partial/incompatible data into
 // step components, which can crash the page during client hydration.
-const STORE_VERSION = 3;
+const STORE_VERSION = 4;
 
 export const useWizard = create<WizardState>()(
   persist(

@@ -22,16 +22,18 @@ type RunBody = {
   domain?: string;
   notes?: string;
   objective: "SALES" | "LEADS" | "APP_INSTALLS" | "TRAFFIC" | "AWARENESS" | "ENGAGEMENT";
-  monthlyBudgetUsd: number;
+  monthlyBudget: number;
+  currency?: string;
   platforms: string[];
   targetCpa?: number;
   targetRoas?: number;
+  targetLocation?: string;
   market?: string;
 };
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as RunBody | null;
-  if (!body || !body.brandName || !body.monthlyBudgetUsd) {
+  if (!body || !body.brandName || !body.monthlyBudget) {
     return NextResponse.json({ ok: false, error: "missing required fields" }, { status: 400 });
   }
 
@@ -55,7 +57,12 @@ export async function POST(req: Request) {
     orgId,
     kind: JobKind.WIZARD_RUN,
     correlationId,
-    input: { brandName: body.brandName, monthlyBudgetUsd: body.monthlyBudgetUsd },
+    input: {
+      brandName: body.brandName,
+      monthlyBudget: body.monthlyBudget,
+      currency: body.currency ?? "USD",
+      targetLocation: body.targetLocation,
+    },
     steps: [
       {
         kind: "agent.ads-dna",
@@ -65,15 +72,17 @@ export async function POST(req: Request) {
         kind: "agent.ads-plan",
         input: {
           objective: body.objective,
-          monthlyBudgetUsd: body.monthlyBudgetUsd,
+          monthlyBudget: body.monthlyBudget,
+          currency: body.currency ?? "USD",
           platforms: body.platforms,
           targetCpa: body.targetCpa,
           targetRoas: body.targetRoas,
+          targetLocation: body.targetLocation,
         },
       },
       {
         kind: "agent.ads-competitor",
-        input: { brand: body.brandName, market: body.market ?? "US" },
+        input: { brand: body.brandName, market: body.market ?? body.targetLocation ?? "US" },
       },
     ],
   });

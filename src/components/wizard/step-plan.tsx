@@ -51,7 +51,7 @@ const CURRENCIES = [
 export function StepPlan() {
   const {
     objective,
-    monthlyBudgetUsd,
+    monthlyBudget,
     platforms,
     targetCpa,
     targetRoas,
@@ -85,7 +85,7 @@ export function StepPlan() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           objective,
-          monthlyBudgetUsd,
+          monthlyBudget,
           platforms,
           targetCpa,
           targetRoas,
@@ -195,8 +195,8 @@ export function StepPlan() {
               id="budget"
               type="number"
               min={500}
-              value={monthlyBudgetUsd}
-              onChange={(e) => update({ monthlyBudgetUsd: Number(e.target.value) })}
+              value={monthlyBudget}
+              onChange={(e) => update({ monthlyBudget: Number(e.target.value) })}
             />
           </div>
           <div className="space-y-1.5">
