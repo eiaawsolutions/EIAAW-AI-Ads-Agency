@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { resolveAuthedOrg } from "@/lib/resolve-org";
+import { summarizeOutput, formatRunError } from "@/lib/agent-run-summary";
 
 /**
  * GET /api/agent-runs/recent?limit=40&since=<iso>
@@ -38,15 +39,16 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     runs: rows.map((r) => {
-      const summary =
-        typeof r.output === "object" && r.output && "summary" in r.output
-          ? String((r.output as { summary?: string }).summary ?? "").slice(0, 120)
-          : "";
+      const agentSlug = r.kind.toLowerCase().replace(/_/g, "-");
+      const message =
+        r.status === "FAILED"
+          ? formatRunError(r.error, agentSlug)
+          : summarizeOutput(r.kind, r.output, agentSlug);
       return {
         id: r.id,
-        agent: r.kind.toLowerCase().replace(/_/g, "-"),
+        agent: agentSlug,
         status: r.status,
-        message: summary || r.error || r.kind.toLowerCase().replace(/_/g, "-"),
+        message,
         at: r.createdAt.toISOString(),
         endedAt: r.endedAt?.toISOString() ?? null,
       };
