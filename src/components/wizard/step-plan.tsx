@@ -19,8 +19,49 @@ const OBJECTIVES = [
 
 const PLATFORMS = ["META", "GOOGLE", "TIKTOK", "LINKEDIN", "MICROSOFT", "YOUTUBE", "APPLE"];
 
+const LOCATION_PRESETS = [
+  "Worldwide",
+  "United States",
+  "Canada",
+  "United Kingdom",
+  "European Union",
+  "Australia",
+  "Singapore",
+  "Malaysia",
+  "Indonesia",
+  "United Arab Emirates",
+  "India",
+  "Japan",
+];
+
+const CURRENCIES = [
+  { v: "USD", l: "USD · US Dollar" },
+  { v: "EUR", l: "EUR · Euro" },
+  { v: "GBP", l: "GBP · British Pound" },
+  { v: "CAD", l: "CAD · Canadian Dollar" },
+  { v: "AUD", l: "AUD · Australian Dollar" },
+  { v: "SGD", l: "SGD · Singapore Dollar" },
+  { v: "MYR", l: "MYR · Malaysian Ringgit" },
+  { v: "IDR", l: "IDR · Indonesian Rupiah" },
+  { v: "AED", l: "AED · UAE Dirham" },
+  { v: "INR", l: "INR · Indian Rupee" },
+  { v: "JPY", l: "JPY · Japanese Yen" },
+];
+
 export function StepPlan() {
-  const { objective, monthlyBudgetUsd, platforms, targetCpa, targetRoas, planResult, update, setStep, dnaResult } = useWizard();
+  const {
+    objective,
+    monthlyBudgetUsd,
+    platforms,
+    targetCpa,
+    targetRoas,
+    targetLocation,
+    currency,
+    planResult,
+    update,
+    setStep,
+    dnaResult,
+  } = useWizard();
   const [loading, setLoading] = useState(false);
 
   function togglePlatform(p: string) {
@@ -32,13 +73,26 @@ export function StepPlan() {
       toast.error("Select at least one platform");
       return;
     }
+    if (!targetLocation.trim()) {
+      toast.error("Enter a target location");
+      return;
+    }
     setLoading(true);
     const res = await apiFetch<{ ok: boolean; output?: Record<string, unknown>; error?: string }>(
       "/api/agents/ads-plan",
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ objective, monthlyBudgetUsd, platforms, targetCpa, targetRoas, brandDna: dnaResult }),
+        body: JSON.stringify({
+          objective,
+          monthlyBudgetUsd,
+          platforms,
+          targetCpa,
+          targetRoas,
+          targetLocation: targetLocation.trim(),
+          currency,
+          brandDna: dnaResult,
+        }),
       },
     );
     setLoading(false);
@@ -84,9 +138,59 @@ export function StepPlan() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="location">Target location</Label>
+            <Input
+              id="location"
+              type="text"
+              list="location-presets"
+              placeholder="e.g. United States, Klang Valley, DACH"
+              value={targetLocation}
+              onChange={(e) => update({ targetLocation: e.target.value })}
+            />
+            <datalist id="location-presets">
+              {LOCATION_PRESETS.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+            <div className="flex flex-wrap gap-1">
+              {LOCATION_PRESETS.slice(0, 6).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => update({ targetLocation: p })}
+                  className={`mono text-[10px] rounded-md border px-2 py-1 transition-colors duration-150 ${
+                    targetLocation === p
+                      ? "border-primary/60 bg-primary/5 text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-border-strong"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="currency">Currency</Label>
+            <select
+              id="currency"
+              value={currency}
+              onChange={(e) => update({ currency: e.target.value })}
+              className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.v} value={c.v}>
+                  {c.l}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="budget">Monthly budget (USD)</Label>
+            <Label htmlFor="budget">Monthly budget ({currency})</Label>
             <Input
               id="budget"
               type="number"
@@ -96,7 +200,7 @@ export function StepPlan() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cpa">Target CPA</Label>
+            <Label htmlFor="cpa">Target CPA ({currency})</Label>
             <Input
               id="cpa"
               type="number"
