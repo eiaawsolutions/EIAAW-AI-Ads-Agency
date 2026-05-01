@@ -20,12 +20,28 @@ export default async function IntegrationsPage({
   const ctx = await getActiveOrgOrRedirect();
   const { connected } = await searchParams;
 
+  // Collapse to one row per platform, preferring connected over revoked.
+  // We may have multiple rows per (orgId, platform) when the user reconnects
+  // (different externalId each time, especially on stub-mode adapters).
+  // Without this filter the Map.set in build below would overwrite the
+  // newest connected row with an older revoked stub.
   const integrations = await db.integration.findMany({
     where: { orgId: ctx.orgId },
-    select: { platform: true, status: true, displayName: true, expiresAt: true },
-    orderBy: { createdAt: "desc" },
+    select: { platform: true, status: true, displayName: true, expiresAt: true, updatedAt: true },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
   });
-  const byPlatform = new Map(integrations.map((i) => [i.platform, i]));
+  const byPlatform = new Map<typeof integrations[number]["platform"], typeof integrations[number]>();
+  for (const row of integrations) {
+    const existing = byPlatform.get(row.platform);
+    if (!existing) {
+      byPlatform.set(row.platform, row);
+      continue;
+    }
+    // Prefer connected over revoked; among same-status, keep most recent.
+    if (existing.status !== "connected" && row.status === "connected") {
+      byPlatform.set(row.platform, row);
+    }
+  }
 
   return (
     <>
