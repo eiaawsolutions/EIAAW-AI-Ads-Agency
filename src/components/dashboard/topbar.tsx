@@ -1,6 +1,15 @@
 "use client";
-import { Bell, Search, Plus, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Bell, Search, Plus, ChevronRight, Megaphone, FlaskConical, Plug, Bot, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export function DashboardTopbar({ title, subtitle, crumbs }: { title: string; subtitle?: string; crumbs?: string[] }) {
   return (
@@ -38,9 +47,43 @@ export function DashboardTopbar({ title, subtitle, crumbs }: { title: string; su
         <Button size="icon" variant="ghost" className="h-8 w-8">
           <Bell className="h-3.5 w-3.5" />
         </Button>
-        <Button size="sm" variant="secondary">
-          <Plus className="h-3.5 w-3.5" /> New
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="secondary">
+              <Plus className="h-3.5 w-3.5" /> New
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Create</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href="/onboarding">
+                <Megaphone /> New campaign
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/experiments?new=1">
+                <FlaskConical /> New experiment
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/creatives?new=1">
+                <Sparkles /> Generate creative
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Connect</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/integrations">
+                <Plug /> Connect integration
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/agents?new=1">
+                <Bot /> Run agent
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
