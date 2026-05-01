@@ -9,6 +9,8 @@ const InputSchema = z.object({
   platforms: z.array(z.string()).min(1),
   targetCpa: z.number().optional(),
   targetRoas: z.number().optional(),
+  targetLocation: z.string().min(1).max(120).optional(),
+  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
   brandDna: z.record(z.unknown()).optional(),
 });
 
@@ -101,6 +103,12 @@ export const adsPlan: Agent<z.infer<typeof InputSchema>, Output> = {
 funnel weights (TOF/MOF/BOF), platform allocation summing to 1.0, KPI targets
 grounded in category benchmarks, and a weekly rollout (max 12 entries). Be
 conservative on week-1 spend and escalate only after learning thresholds are met.
+
+Honor the input target geography when shaping platform allocation, CPM/CPC
+benchmarks, and KPI targets — auction prices in MY/SG/AE differ materially
+from US/UK/EU. Express all monetary KPIs (targetCpa, etc.) in the input
+currency, not USD, when a currency is provided. Mention the geography and
+currency once in the rationale so the operator sees they were considered.
 
 Call the submit_ads_plan tool with the result. Always populate the summary
 field with a one-sentence headline (≤120 chars).`,
