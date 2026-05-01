@@ -3,9 +3,11 @@ import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlatformChip } from "@/components/platform/chip";
+import { DisconnectButton } from "@/components/integrations/disconnect-button";
 import { allPlatforms, getAdapter } from "@/integrations/registry";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
+import { tokenHealth, tokenHealthLabel } from "@/lib/integration-health";
 
 export const metadata = { title: "Integrations" };
 export const dynamic = "force-dynamic";
@@ -44,10 +46,13 @@ export default async function IntegrationsPage({
             const adapter = getAdapter(p);
             const row = byPlatform.get(p);
             const isConnected = row?.status === "connected";
+            const health = isConnected ? tokenHealth(row?.expiresAt) : null;
+            const healthLabel = isConnected ? tokenHealthLabel(row?.expiresAt) : null;
+            const slug = p.toLowerCase();
             return (
               <div
                 key={p}
-                className={`grid grid-cols-[1fr_auto_auto] items-center gap-4 px-5 py-4 ${i > 0 ? "hairline-t" : ""}`}
+                className={`grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-5 py-4 ${i > 0 ? "hairline-t" : ""}`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <PlatformChip platform={p} />
@@ -59,6 +64,21 @@ export default async function IntegrationsPage({
                         : "Sandbox mode · click Connect to simulate"}
                   </span>
                 </div>
+
+                {/* Token health pill (only for connected rows that aren't healthy) */}
+                {isConnected && health === "expired" ? (
+                  <span className="mono text-2xs text-coral-600 bg-coral-500/10 border border-coral-500/30 rounded-md px-2 py-0.5">
+                    {healthLabel}
+                  </span>
+                ) : isConnected && health === "expiring_soon" ? (
+                  <span className="mono text-2xs text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-md px-2 py-0.5">
+                    {healthLabel}
+                  </span>
+                ) : (
+                  <span aria-hidden />
+                )}
+
+                {/* Connection status badge */}
                 {isConnected ? (
                   <Badge variant="default" className="bg-primary/15 text-primary border-primary/20">
                     Connected
@@ -66,13 +86,16 @@ export default async function IntegrationsPage({
                 ) : (
                   <Badge variant="outline">Not connected</Badge>
                 )}
+
+                {/* Action: Connect / Disconnect */}
                 {isConnected ? (
-                  <span className="mono text-2xs text-muted-foreground">
-                    {adapter.mode === "stub" ? "sandbox" : "live"}
-                  </span>
+                  <DisconnectButton
+                    platform={slug}
+                    displayName={row?.displayName ?? p}
+                  />
                 ) : (
                   <Button asChild size="sm" variant="subtle">
-                    <Link href={`/api/integrations/${p.toLowerCase()}/connect`}>Connect</Link>
+                    <Link href={`/api/integrations/${slug}/connect`}>Connect</Link>
                   </Button>
                 )}
               </div>
@@ -85,8 +108,12 @@ export default async function IntegrationsPage({
             <span className="eyebrow">Analytics & CRM</span>
           </div>
           {["Google Analytics 4", "HubSpot", "Salesforce"].map((t, i) => (
-            <div key={t} className={`grid grid-cols-[1fr_auto_auto] items-center gap-4 px-5 py-4 ${i > 0 ? "hairline-t" : ""}`}>
+            <div
+              key={t}
+              className={`grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-5 py-4 ${i > 0 ? "hairline-t" : ""}`}
+            >
               <span className="text-sm font-medium text-foreground">{t}</span>
+              <span aria-hidden />
               <Badge variant="outline">Coming soon</Badge>
               <Button size="sm" variant="subtle" disabled>
                 Connect
