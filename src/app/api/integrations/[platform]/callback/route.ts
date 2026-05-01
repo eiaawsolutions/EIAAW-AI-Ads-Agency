@@ -77,7 +77,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
   });
 
   // Live mode only: pull last 30 days of real Insights so the audit has
-  // grounded numbers instead of zeros. Best-effort: a Meta hiccup here
+  // grounded numbers instead of zeros. Best-effort: a platform hiccup here
   // must not turn a successful OAuth into a redirect failure.
   if (p === Platform.META && getAdapter(p).mode === "live") {
     const { ingestMetaInsights } = await import("@/integrations/meta/insights");
@@ -93,6 +93,33 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
           err instanceof Error ? err.message : err,
         ),
       );
+  }
+
+  if (p === Platform.GOOGLE && getAdapter(p).mode === "live") {
+    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+    const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
+    if (developerToken && token.externalId) {
+      const { ingestGoogleAdsInsights } = await import("@/integrations/google/insights");
+      ingestGoogleAdsInsights({
+        orgId,
+        accessToken: token.accessToken,
+        developerToken,
+        customerId: token.externalId,
+        loginCustomerId,
+        days: 30,
+      })
+        .then((r) =>
+          console.log(
+            `[google-insights:connect] org=${orgId} cid=${r.customerId} rows=${r.rowsUpserted} spendMinor=${r.totalSpendMinor}`,
+          ),
+        )
+        .catch((err) =>
+          console.warn(
+            `[google-insights:connect] org=${orgId} ingest failed:`,
+            err instanceof Error ? err.message : err,
+          ),
+        );
+    }
   }
 
   // Auto-trigger an audit on platform connect. Best-effort and non-blocking:

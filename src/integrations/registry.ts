@@ -2,7 +2,7 @@ import { Platform } from "@prisma/client";
 import type { PlatformAdapter } from "./types";
 
 import { metaAdapter } from "./meta-adapter";
-import { googleAdapter } from "./google";
+import { googleAdapter } from "./google-adapter";
 import { tiktokAdapter } from "./tiktok";
 import { linkedinAdapter } from "./linkedin";
 import { microsoftAdapter } from "./microsoft";
