@@ -10,7 +10,7 @@
  * per-request.
  */
 // Build marker — bump to force image rebuild after dedup.
-const BUILD_MARKER = "2026-05-01T05:15Z";
+const BUILD_MARKER = "2026-05-01T05:40Z-src-move";
 
 export async function register() {
   // eslint-disable-next-line no-console
@@ -24,7 +24,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "edge") return;
 
   // Lazy import so the edge bundle never tries to load the SDK.
-  const { resolveEnvFromInfisical } = await import("./src/lib/secrets");
+  const { resolveEnvFromInfisical } = await import("./lib/secrets");
 
   try {
     const result = await resolveEnvFromInfisical();
