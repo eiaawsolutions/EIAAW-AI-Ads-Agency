@@ -19,14 +19,14 @@ export function StepDone() {
         <span className="text-muted-foreground">running.</span>
       </h1>
       <p className="mt-4 text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
-        Campaigns are in-flight. Audit, creative, test, math, and budget agents will report in 24 hours with the first optimization cycle.
+        Brand DNA, strategy, and competitor intel are saved to your workspace. The dashboard will guide you through the next milestone — connecting an ad platform — so the agents can audit live performance.
       </p>
       <div className="mt-10 flex items-center justify-center gap-2">
         <Button asChild variant="secondary" size="lg">
-          <Link href="/dashboard">Go to dashboard →</Link>
+          <Link href="/dashboard">Continue on dashboard →</Link>
         </Button>
         <Button variant="ghost" size="lg" onClick={reset}>
-          Restart onboarding
+          Restart wizard
         </Button>
       </div>
     </div>

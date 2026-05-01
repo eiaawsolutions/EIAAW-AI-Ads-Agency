@@ -2,8 +2,10 @@ import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { PlatformChip, PlatformDot } from "@/components/platform/chip";
+import { OnboardingHero } from "@/components/dashboard/onboarding-hero";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { loadOverview } from "@/lib/dashboard-data";
+import { loadSetupStatus } from "@/lib/setup-status";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -16,13 +18,24 @@ function fmtUsd(n: number): string {
 
 export default async function DashboardHome() {
   const ctx = await getActiveOrgOrRedirect();
-  const data = await loadOverview(ctx.orgId);
+  const [data, setup] = await Promise.all([
+    loadOverview(ctx.orgId),
+    loadSetupStatus(ctx.orgId),
+  ]);
   const t = data.totals30d;
+  // Hide the empty-stat graveyard when the user is still in setup. Once
+  // they pass the integration milestone, the perf cards always render —
+  // even if values are still zero, because that's now informative state.
+  const showPerformanceShell = setup.allDone || setup.hasIntegration;
 
   return (
     <>
       <DashboardTopbar title="Overview" subtitle={ctx.org.name} />
       <main className="p-6 space-y-6">
+        <OnboardingHero status={setup} orgName={ctx.org.name} />
+
+        {showPerformanceShell && (
+        <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             label="ROAS · 30d"
@@ -147,6 +160,8 @@ export default async function DashboardHome() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </main>
     </>
   );
