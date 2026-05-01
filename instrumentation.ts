@@ -10,7 +10,15 @@
  * per-request.
  */
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // eslint-disable-next-line no-console
+  console.log(
+    `[instrumentation] hook fired (runtime=${process.env.NEXT_RUNTIME ?? "unset"}, resolver=${process.env.INFISICAL_RESOLVER_ENABLED ?? "unset"})`,
+  );
+
+  // In Next.js 15 standalone, NEXT_RUNTIME is sometimes unset on the
+  // node-server boot path. Treat anything that isn't explicitly "edge"
+  // as nodejs so the resolver still runs.
+  if (process.env.NEXT_RUNTIME === "edge") return;
 
   // Lazy import so the edge bundle never tries to load the SDK.
   const { resolveEnvFromInfisical } = await import("./src/lib/secrets");
