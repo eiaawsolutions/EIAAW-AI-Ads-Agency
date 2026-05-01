@@ -8,6 +8,7 @@ import type { PlatformAdapter, IntegrationResult } from "./types";
 export function stubAdapter(platform: Platform, authBase: string): PlatformAdapter {
   return {
     platform,
+    mode: "stub",
     authUrl(redirectUri, state) {
       const params = new URLSearchParams({ redirect_uri: redirectUri, state, response_type: "code" });
       return `${authBase}?${params.toString()}`;

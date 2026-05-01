@@ -18,6 +18,13 @@ export type IntegrationResult = {
 
 export interface PlatformAdapter {
   platform: Platform;
+  /**
+   * "live" when real OAuth credentials are configured (provider-specific
+   * env vars present); "stub" when running against the simulated adapter.
+   * The connect route uses this to decide whether to redirect to the real
+   * OAuth provider or shortcut through the in-app callback for the demo.
+   */
+  mode: "live" | "stub";
   /** Generate the OAuth authorization URL for this platform. */
   authUrl(redirectUri: string, state: string): string;
   /** Exchange an OAuth code for access + refresh tokens. */

@@ -27,6 +27,7 @@ function liveAdapter(): PlatformAdapter {
 
   return {
     platform: Platform.META,
+    mode: "live",
 
     authUrl(redirectUri, state) {
       return oauth.authorizationUrl(redirectUri, state);
