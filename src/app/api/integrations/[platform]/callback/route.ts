@@ -8,6 +8,17 @@ import { enqueueAuditFor } from "@/jobs/audit-trigger";
 import { resolveAuthedOrg } from "@/lib/resolve-org";
 
 export async function GET(req: Request, ctx: { params: Promise<{ platform: string }> }) {
+  // Reject prefetches and link-preview crawlers. The OAuth callback has a
+  // real DB side effect (upserts a connected Integration row), so any GET
+  // that wasn't a deliberate user action must not execute. Without this,
+  // Next.js's <Link> prefetcher and Slack/Discord/Twitter unfurl bots can
+  // silently re-create connected rows after a Disconnect.
+  const secPurpose = req.headers.get("sec-purpose") ?? req.headers.get("purpose");
+  const nextPrefetch = req.headers.get("next-router-prefetch") ?? req.headers.get("x-middleware-prefetch");
+  if (secPurpose?.includes("prefetch") || nextPrefetch) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const orgCtx = await resolveAuthedOrg();
   if (!orgCtx) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/signin`);
   const { orgId, userId } = orgCtx;
@@ -64,6 +75,25 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
       status: "connected",
     },
   });
+
+  // Live mode only: pull last 30 days of real Insights so the audit has
+  // grounded numbers instead of zeros. Best-effort: a Meta hiccup here
+  // must not turn a successful OAuth into a redirect failure.
+  if (p === Platform.META && getAdapter(p).mode === "live") {
+    const { ingestMetaInsights } = await import("@/integrations/meta/insights");
+    ingestMetaInsights({ orgId, accessToken: token.accessToken, days: 30 })
+      .then((r) =>
+        console.log(
+          `[meta-insights:connect] org=${orgId} acct=${r.adAccountId} rows=${r.rowsUpserted} spendMinor=${r.totalSpendMinor}`,
+        ),
+      )
+      .catch((err) =>
+        console.warn(
+          `[meta-insights:connect] org=${orgId} ingest failed:`,
+          err instanceof Error ? err.message : err,
+        ),
+      );
+  }
 
   // Auto-trigger an audit on platform connect. Best-effort and non-blocking:
   // the 24h dedup floor in enqueueAuditFor handles reconnect loops, and any

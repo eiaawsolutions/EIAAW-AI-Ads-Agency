@@ -17,7 +17,16 @@ import { auth } from "@/lib/auth";
  * CSRF protection on real OAuth providers. The stub flow doesn't need
  * it (request stays on our origin).
  */
-export async function GET(_req: Request, ctx: { params: Promise<{ platform: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ platform: string }> }) {
+  // Reject prefetches. /connect 302s into /callback which writes a connected
+  // Integration row on stub adapters; a prefetched Link would silently
+  // reconnect a platform the user just disconnected.
+  const secPurpose = req.headers.get("sec-purpose") ?? req.headers.get("purpose");
+  const nextPrefetch = req.headers.get("next-router-prefetch") ?? req.headers.get("x-middleware-prefetch");
+  if (secPurpose?.includes("prefetch") || nextPrefetch) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/signin`);

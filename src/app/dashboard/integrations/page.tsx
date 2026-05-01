@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Platform } from "@prisma/client";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlatformChip } from "@/components/platform/chip";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
+import { MetaSyncButton } from "@/components/integrations/meta-sync-button";
 import { allPlatforms, getAdapter } from "@/integrations/registry";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
@@ -42,6 +44,22 @@ export default async function IntegrationsPage({
       byPlatform.set(row.platform, row);
     }
   }
+
+  // For the live-mode Meta row, surface the last successful Insights sync
+  // so the operator knows whether the audit has fresh ground truth.
+  const metaConnected = byPlatform.get(Platform.META)?.status === "connected";
+  const metaLiveMode = getAdapter(Platform.META).mode === "live";
+  const metaShowSync = metaConnected && metaLiveMode;
+  const metaLastIngest = metaShowSync
+    ? await db.metricDaily.findFirst({
+        where: {
+          platform: Platform.META,
+          campaign: { orgId: ctx.orgId, name: "Account totals (Meta)" },
+        },
+        orderBy: { date: "desc" },
+        select: { date: true },
+      })
+    : null;
 
   return (
     <>
@@ -105,13 +123,32 @@ export default async function IntegrationsPage({
 
                 {/* Action: Connect / Disconnect */}
                 {isConnected ? (
-                  <DisconnectButton
-                    platform={slug}
-                    displayName={row?.displayName ?? p}
-                  />
+                  <div className="flex items-center gap-3">
+                    {p === Platform.META && metaShowSync && (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <MetaSyncButton />
+                        {metaLastIngest?.date && (
+                          <span className="text-2xs text-muted-foreground mono">
+                            last sync · {metaLastIngest.date.toISOString().slice(0, 10)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <DisconnectButton
+                      platform={slug}
+                      displayName={row?.displayName ?? p}
+                    />
+                  </div>
                 ) : (
                   <Button asChild size="sm" variant="subtle">
-                    <Link href={`/api/integrations/${slug}/connect`}>Connect</Link>
+                    {/* prefetch=false is load-bearing: Next.js prefetches Links
+                        in viewport, which would issue a real GET to /connect.
+                        That route 302s into /callback, and the stub callback
+                        upserts a fresh connected row on every hit — making
+                        Disconnect look like it auto-reconnects. */}
+                    <Link href={`/api/integrations/${slug}/connect`} prefetch={false}>
+                      Connect
+                    </Link>
                   </Button>
                 )}
               </div>

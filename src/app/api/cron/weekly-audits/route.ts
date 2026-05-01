@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { JobStatus } from "@prisma/client";
+import { JobStatus, Platform } from "@prisma/client";
 import { db } from "@/lib/db";
 import { enqueueAuditFor } from "@/jobs/audit-trigger";
+import { decryptSecret } from "@/lib/crypto";
+import { getAdapter } from "@/integrations/registry";
+import { ingestMetaInsights } from "@/integrations/meta/insights";
 
 /**
  * POST /api/cron/weekly-audits
@@ -57,6 +60,32 @@ export async function POST(req: Request) {
     if (lastRunAt && lastRunAt > cutoff) {
       results.push({ orgId: org.id, slug: org.slug, action: "fresh" });
       continue;
+    }
+
+    // Refresh Meta Insights before the audit runs so it scores against
+    // current numbers. Best-effort — a Meta hiccup must not skip the audit.
+    if (getAdapter(Platform.META).mode === "live") {
+      const metaIntegration = await db.integration.findFirst({
+        where: { orgId: org.id, platform: Platform.META, status: "connected" },
+        orderBy: { updatedAt: "desc" },
+        select: { accessToken: true, expiresAt: true },
+      });
+      const stillValid =
+        !metaIntegration?.expiresAt || metaIntegration.expiresAt.getTime() > Date.now();
+      if (metaIntegration?.accessToken && stillValid) {
+        try {
+          const accessToken = decryptSecret(metaIntegration.accessToken);
+          const ingest = await ingestMetaInsights({ orgId: org.id, accessToken, days: 30 });
+          console.log(
+            `[weekly:meta-ingest] org=${org.id} acct=${ingest.adAccountId} rows=${ingest.rowsUpserted}`,
+          );
+        } catch (err) {
+          console.warn(
+            `[weekly:meta-ingest] org=${org.id} skipped:`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+      }
     }
 
     const r = await enqueueAuditFor(org.id, "weekly");
