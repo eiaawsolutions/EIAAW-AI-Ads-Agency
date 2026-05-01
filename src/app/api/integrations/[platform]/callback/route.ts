@@ -98,13 +98,25 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
   if (p === Platform.GOOGLE && getAdapter(p).mode === "live") {
     const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
     const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID;
-    if (developerToken && token.externalId) {
+    // The adapter's exchangeCode falls back to externalId="default" when
+    // listAccessibleCustomers returns empty (e.g. brand-new MCC with no
+    // linked clients yet). "default" is not a real Google customer ID, so
+    // skip the ingest in that case — the insights call would 400 against
+    // /customers/default/googleAds:searchStream. Once a real CID is linked
+    // to the MCC and the user re-OAuths, externalId will hold a 10-digit
+    // string and the ingest fires.
+    const isRealCustomerId =
+      typeof token.externalId === "string" &&
+      token.externalId !== "default" &&
+      /^\d+$/.test(token.externalId.replace(/-/g, ""));
+
+    if (developerToken && isRealCustomerId) {
       const { ingestGoogleAdsInsights } = await import("@/integrations/google/insights");
       ingestGoogleAdsInsights({
         orgId,
         accessToken: token.accessToken,
         developerToken,
-        customerId: token.externalId,
+        customerId: token.externalId!,
         loginCustomerId,
         days: 30,
       })
@@ -119,6 +131,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ platform: strin
             err instanceof Error ? err.message : err,
           ),
         );
+    } else if (developerToken) {
+      console.log(
+        `[google-insights:connect] org=${orgId} skipped: no real customer ID (externalId=${token.externalId ?? "undefined"}). Link a Google Ads account to MCC ${loginCustomerId ?? "(none)"} and reconnect to enable ingest.`,
+      );
     }
   }
 
