@@ -48,8 +48,8 @@ interface Agent<Input, Output> {
 }
 ```
 
-- `jsonComplete` (in `_base.ts`) wraps Claude calls with JSON-schema contracts and prompt caching on the system message.
-- Without `ANTHROPIC_API_KEY`, agents return deterministic stub outputs so the UI is fully usable in dev.
+- `toolComplete` (in `_base.ts`) wraps Claude calls with Anthropic tool_use structured output — the model is forced to call a tool whose `input_schema` matches the agent's Output type, eliminating the JSON parse-error class (truncation, unescaped quotes, code fences). System prompts are ephemerally cached.
+- Without `ANTHROPIC_API_KEY`, agents return their inline `stubData` so the UI is fully usable in dev.
 - **Dispatcher** persists every run as an `AgentRun` row with tokens-in, tokens-out, cost, and output — the dashboard reads from this table.
 - **Categories**: `strategy` (5), `platform` (7), `cross` (5), `creative` (2) = **19 agents**.
 
