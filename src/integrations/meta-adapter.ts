@@ -2,8 +2,42 @@ import { Platform } from "@prisma/client";
 import type { PlatformAdapter } from "./types";
 import { stubAdapter } from "./_stub";
 import { MetaClient, MetaOAuthClient } from "./meta";
+import type { MetaCampaignObjective } from "./meta/types";
 import { loadTokens } from "./token-store";
 import { db } from "@/lib/db";
+
+/**
+ * Map our internal Campaign.objective enum to Meta Marketing API's
+ * "OUTCOME_*" objectives.
+ *
+ * Meta deprecated the legacy objective names (SALES, LEADS, TRAFFIC, etc.)
+ * in favor of Outcome-Driven Ad Experiences (ODAX). Sending a bare
+ * "SALES" produces error #100 "Objective is invalid" — see
+ * https://developers.facebook.com/docs/marketing-api/campaign/overview
+ *
+ * Mapping rationale:
+ *   SALES         -> OUTCOME_SALES         (purchase / conversion)
+ *   LEADS         -> OUTCOME_LEADS         (form fill / lead gen)
+ *   APP_INSTALLS  -> OUTCOME_APP_PROMOTION (install / app event)
+ *   TRAFFIC       -> OUTCOME_TRAFFIC       (link click / landing page view)
+ *   AWARENESS     -> OUTCOME_AWARENESS     (reach / brand awareness)
+ *   ENGAGEMENT    -> OUTCOME_ENGAGEMENT    (post engagement / video views)
+ */
+const OBJECTIVE_MAP: Record<string, MetaCampaignObjective> = {
+  SALES: "OUTCOME_SALES",
+  LEADS: "OUTCOME_LEADS",
+  APP_INSTALLS: "OUTCOME_APP_PROMOTION",
+  TRAFFIC: "OUTCOME_TRAFFIC",
+  AWARENESS: "OUTCOME_AWARENESS",
+  ENGAGEMENT: "OUTCOME_ENGAGEMENT",
+};
+
+function toMetaObjective(input: unknown): MetaCampaignObjective {
+  const key = String(input ?? "SALES").toUpperCase();
+  // Pass through if the caller already gave us a Meta-native value.
+  if (key.startsWith("OUTCOME_")) return key as MetaCampaignObjective;
+  return OBJECTIVE_MAP[key] ?? "OUTCOME_SALES";
+}
 
 /**
  * Meta adapter.
@@ -112,16 +146,17 @@ function liveAdapter(): PlatformAdapter {
 
         case "launch": {
           const payload = input.payload ?? {};
+          const objective = toMetaObjective(payload.objective);
           const campaign = await client.createCampaign(adAccountId, {
             name: String(payload.name ?? `EIAAW campaign ${Date.now()}`),
-            objective: (payload.objective as "OUTCOME_SALES") ?? "OUTCOME_SALES",
+            objective,
             daily_budget: payload.dailyBudget as number | undefined,
             status: "PAUSED", // always PAUSED — operator reviews before activation
           });
           return {
             action: input.action,
             externalIds: { campaign: campaign.id },
-            log: [`[META] created campaign ${campaign.id} (PAUSED)`],
+            log: [`[META] created campaign ${campaign.id} (objective=${objective}, PAUSED)`],
           };
         }
 
