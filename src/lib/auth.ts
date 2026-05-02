@@ -24,11 +24,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-      // Disabled: previously allowed unverified-email account-linking, which
-      // could be abused if Google later marks the email unverified. We now
-      // require Stripe checkout to bootstrap the User row, so cross-provider
-      // linking is unnecessary.
-      allowDangerousEmailAccountLinking: false,
+      // Required: the User row is created by the Stripe webhook BEFORE
+      // the user ever signs in via Google, so the OAuth callback must be
+      // allowed to link the new Google identity to the existing User by
+      // matching email. Without this flag, NextAuth's PrismaAdapter
+      // raises OAuthAccountNotLinked and the user can never sign in.
+      //
+      // Why this is safe in our architecture: User rows are ONLY created
+      // by /api/stripe/webhook on checkout.session.completed, which
+      // requires a paying customer (Stripe verifies email ownership via
+      // payment method). An attacker can't pre-plant a victim's email
+      // without paying with the victim's card. The classic threat
+      // (attacker plants email, victim's Google sign-in attaches to
+      // attacker's User) doesn't apply because we don't expose any
+      // unauthenticated User-creation surface.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {

@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       // them on checkout.session.completed even before the subscription
       // object is fully expanded.
       metadata: { plan: parsed.plan, email: parsed.email },
-      success_url: `${baseUrl}/dashboard?welcome=1&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${baseUrl}/onboarding/welcome?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing?canceled=1`,
       allow_promotion_codes: true,
     });

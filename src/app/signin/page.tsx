@@ -10,8 +10,13 @@ import { Button } from "@/components/ui/button";
 const ERROR_MESSAGES: Record<string, string> = {
   no_account: "We couldn't find an account for that email. Start a 14-day trial to create one.",
   no_subscription: "Your subscription is inactive. Renew or start a new trial to access your workspace.",
-  AccessDenied: "Sign-in was denied. If you just paid, the webhook may still be processing — try again in a few seconds.",
-  Configuration: "Sign-in is temporarily unavailable. Please try again or contact support.",
+  AccessDenied: "Sign-in was denied. If you just paid, the webhook may still be processing — try again in 30 seconds.",
+  OAuthAccountNotLinked:
+    "This Google account isn't linked to your subscription yet. Try once more — the link is created on first sign-in.",
+  OAuthCallback: "Google sign-in failed. Please try again.",
+  OAuthSignin: "Could not start Google sign-in. Please try again.",
+  Callback: "Sign-in callback failed. Please try again.",
+  Configuration: "Sign-in is temporarily unavailable. Please contact support.",
   Verification: "Verification link expired. Please sign in again.",
 };
 
