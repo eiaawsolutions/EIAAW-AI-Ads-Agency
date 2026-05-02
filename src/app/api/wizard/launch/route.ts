@@ -42,6 +42,17 @@ export async function POST(req: Request) {
   }
 }
 
+type MetaCreativePayload = {
+  pageId: string;
+  pixelId?: string;
+  landingUrl: string;
+  headline: string;
+  primaryText: string;
+  description?: string;
+  cta: string;
+  imageHash: string;
+};
+
 type ParsedBody =
   | {
       brandName: string;
@@ -52,6 +63,7 @@ type ParsedBody =
       targetLocation: string;
       platforms: Platform[];
       strategy?: Record<string, unknown>;
+      creatives?: { META?: MetaCreativePayload };
     }
   | { error: string };
 
@@ -96,5 +108,55 @@ function parseBody(raw: unknown): ParsedBody {
     b.strategy && typeof b.strategy === "object" ? (b.strategy as Record<string, unknown>) : undefined;
   const domain = typeof b.domain === "string" ? b.domain : undefined;
 
-  return { brandName, domain, objective, monthlyBudget, currency, targetLocation, platforms, strategy };
+  // Creative payloads are per-platform. Validate the META block here when
+  // META is selected — defense in depth so a maliciously-crafted client
+  // can't ship an empty creative through to the adapter and create an
+  // un-deliverable campaign shell on the platform.
+  let creatives: { META?: MetaCreativePayload } | undefined;
+  if (platforms.includes("META")) {
+    const c = (b.creatives as Record<string, unknown> | undefined)?.META as
+      | Record<string, unknown>
+      | undefined;
+    if (!c) return { error: "creative.META payload required when Meta is selected" };
+
+    const pageId = typeof c.pageId === "string" ? c.pageId.trim() : "";
+    const landingUrl = typeof c.landingUrl === "string" ? c.landingUrl.trim() : "";
+    const headline = typeof c.headline === "string" ? c.headline.trim() : "";
+    const primaryText = typeof c.primaryText === "string" ? c.primaryText.trim() : "";
+    const description = typeof c.description === "string" ? c.description.trim() : "";
+    const cta = typeof c.cta === "string" ? c.cta : "";
+    const imageHash = typeof c.imageHash === "string" ? c.imageHash.trim() : "";
+    const pixelId = typeof c.pixelId === "string" && c.pixelId.trim() ? c.pixelId.trim() : undefined;
+
+    if (!pageId) return { error: "creative.META.pageId required" };
+    if (!landingUrl || !/^https?:\/\/.+/i.test(landingUrl))
+      return { error: "creative.META.landingUrl must be a valid http(s) URL" };
+    if (!headline) return { error: "creative.META.headline required" };
+    if (headline.length > 40) return { error: "creative.META.headline must be <= 40 chars" };
+    if (!primaryText) return { error: "creative.META.primaryText required" };
+    if (primaryText.length > 125) return { error: "creative.META.primaryText must be <= 125 chars" };
+    if (description.length > 30) return { error: "creative.META.description must be <= 30 chars" };
+    if (!cta) return { error: "creative.META.cta required" };
+    if (!imageHash) return { error: "creative.META.imageHash required (upload image first)" };
+    if ((objective === "SALES" || objective === "LEADS") && !pixelId) {
+      return {
+        error: `creative.META.pixelId required for ${objective} objective — install/select a Meta Pixel`,
+      };
+    }
+    creatives = {
+      META: { pageId, pixelId, landingUrl, headline, primaryText, description: description || undefined, cta, imageHash },
+    };
+  }
+
+  return {
+    brandName,
+    domain,
+    objective,
+    monthlyBudget,
+    currency,
+    targetLocation,
+    platforms,
+    strategy,
+    creatives,
+  };
 }

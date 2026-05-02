@@ -13,10 +13,23 @@ export type PlatformLaunchResult = {
   platform: Platform;
   state: PlatformLaunchState;
   externalCampaignId: string | null;
+  /** All entity IDs the adapter created (campaign, adset, creative, ad). */
+  externalIds?: Record<string, string>;
   reason: string;
   remediation: { label: string; href: string } | null;
   adapterMode: "live" | "stub";
   log: string[];
+};
+
+export type MetaCreativeInput = {
+  pageId: string;
+  pixelId?: string;
+  landingUrl: string;
+  headline: string;
+  primaryText: string;
+  description?: string;
+  cta: string;
+  imageHash: string;
 };
 
 export type LaunchInput = {
@@ -30,6 +43,7 @@ export type LaunchInput = {
   targetLocation: string;
   platforms: Platform[];
   strategy?: Record<string, unknown>; // ads-plan output, optional
+  creatives?: { META?: MetaCreativeInput };
 };
 
 export type LaunchOutcome = {
@@ -93,10 +107,15 @@ export async function launchCampaign(input: LaunchInput): Promise<LaunchOutcome>
 
   const results: PlatformLaunchResult[] = [];
   for (const platform of input.platforms) {
+    const platformCreative =
+      platform === Platform.META ? input.creatives?.META : undefined;
     const result = await launchOnePlatform(ctx, platform, {
       campaignName: campaign.name,
       objective: input.objective,
       dailyBudgetMinor,
+      targetLocation: input.targetLocation,
+      currency: input.currency,
+      creative: platformCreative,
     });
 
     await db.adSet.create({
@@ -114,6 +133,18 @@ export async function launchCampaign(input: LaunchInput): Promise<LaunchOutcome>
           adapterMode: result.adapterMode,
           launchedAt: new Date().toISOString(),
           log: result.log,
+          // Persist the launch inputs so /retry can replay without making
+          // the operator re-fill the wizard. creative is platform-scoped
+          // and may be undefined for platforms that don't yet take one
+          // (Google etc. — those replay with no creative data anyway).
+          launchInputs: {
+            targetLocation: input.targetLocation,
+            currency: input.currency,
+            creative: platformCreative,
+          },
+          // Persist the structured external IDs for downstream use
+          // (activate, sync_metrics, future ad-level optimizations).
+          externalIds: result.externalIds ?? null,
         },
       },
     });
@@ -184,7 +215,14 @@ async function upsertBrand(orgId: string, name: string, domain?: string) {
 export async function launchOnePlatform(
   ctx: AgentContext,
   platform: Platform,
-  payload: { campaignName: string; objective: string; dailyBudgetMinor: number },
+  payload: {
+    campaignName: string;
+    objective: string;
+    dailyBudgetMinor: number;
+    targetLocation: string;
+    currency: string;
+    creative?: MetaCreativeInput;
+  },
 ): Promise<PlatformLaunchResult> {
   const adapter = getAdapter(platform);
   const log: string[] = [];
@@ -201,6 +239,9 @@ export async function launchOnePlatform(
           name: payload.campaignName,
           objective: payload.objective,
           dailyBudget: payload.dailyBudgetMinor,
+          targetLocation: payload.targetLocation,
+          currency: payload.currency,
+          creative: payload.creative,
         },
       });
       log.push(...(r.log ?? []));
@@ -265,6 +306,9 @@ export async function launchOnePlatform(
         objective: payload.objective,
         dailyBudget: payload.dailyBudgetMinor,
         adAccountId: integration.externalId ?? undefined,
+        targetLocation: payload.targetLocation,
+        currency: payload.currency,
+        creative: payload.creative,
       },
     });
     log.push(...(r.log ?? []));
@@ -303,6 +347,7 @@ export async function launchOnePlatform(
       platform,
       state: "live",
       externalCampaignId,
+      externalIds: r.externalIds,
       reason: `Campaign created on ${formatPlatform(platform)} (${externalCampaignId}). Status starts paused — review and activate when ready.`,
       remediation: null,
       adapterMode: "live",

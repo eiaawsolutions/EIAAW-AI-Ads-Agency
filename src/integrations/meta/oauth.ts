@@ -50,7 +50,24 @@ export class MetaOAuthClient {
    * Build the dialog URL to send the user to.
    * https://www.facebook.com/{version}/dialog/oauth?...
    */
-  authorizationUrl(redirectUri: string, state: string, scopes: string[] = ["ads_management", "ads_read", "business_management"]): string {
+  authorizationUrl(
+    redirectUri: string,
+    state: string,
+    // pages_show_list — read /me/accounts to populate the wizard's Page picker.
+    // pages_manage_ads — required to set page_id on object_story_spec when
+    // creating an ad creative. Without it, /act_X/adcreatives returns
+    // (#200) "The user has not granted the application permission to ..."
+    // and the campaign sits as an empty shell with no deliverable ad.
+    // business_management — needed for accounts that wrap the user's pages
+    // and ad accounts inside Business Manager (most agency accounts).
+    scopes: string[] = [
+      "ads_management",
+      "ads_read",
+      "business_management",
+      "pages_show_list",
+      "pages_manage_ads",
+    ],
+  ): string {
     const url = new URL(`https://www.facebook.com/${this.apiVersion}/dialog/oauth`);
     url.searchParams.set("client_id", this.appId);
     url.searchParams.set("redirect_uri", redirectUri);

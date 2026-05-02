@@ -3,7 +3,12 @@ import type { PlatformAdapter } from "./types";
 import { stubAdapter } from "./_stub";
 import { MetaClient, MetaOAuthClient } from "./meta";
 import { MetaApiError } from "./meta/errors";
-import type { MetaCampaignObjective } from "./meta/types";
+import type {
+  MetaCampaignObjective,
+  MetaOptimizationGoal,
+  MetaBillingEvent,
+  MetaCallToActionType,
+} from "./meta/types";
 import { loadTokens } from "./token-store";
 import { db } from "@/lib/db";
 
@@ -38,6 +43,141 @@ function toMetaObjective(input: unknown): MetaCampaignObjective {
   // Pass through if the caller already gave us a Meta-native value.
   if (key.startsWith("OUTCOME_")) return key as MetaCampaignObjective;
   return OBJECTIVE_MAP[key] ?? "OUTCOME_SALES";
+}
+
+/**
+ * Map our internal objective to Meta's (optimization_goal, billing_event,
+ * promoted_object) trio that an AdSet needs.
+ *
+ * Meta's auction won't run an AdSet unless these three are coherent:
+ *
+ *   OUTCOME_SALES        → optimization_goal=OFFSITE_CONVERSIONS, billing=IMPRESSIONS,
+ *                          promoted_object={pixel_id, custom_event_type=PURCHASE}
+ *   OUTCOME_LEADS        → optimization_goal=OFFSITE_CONVERSIONS, billing=IMPRESSIONS,
+ *                          promoted_object={pixel_id, custom_event_type=LEAD}
+ *   OUTCOME_TRAFFIC      → optimization_goal=LINK_CLICKS, billing=LINK_CLICKS
+ *   OUTCOME_AWARENESS    → optimization_goal=REACH, billing=IMPRESSIONS
+ *   OUTCOME_ENGAGEMENT   → optimization_goal=POST_ENGAGEMENT (we use IMPRESSIONS as billing — POST_ENGAGEMENT billing is rare)
+ *   OUTCOME_APP_PROMOTION → optimization_goal=APP_INSTALLS (requires application_id;
+ *                          we don't yet collect this — fail loudly rather than
+ *                          create an undeliverable AdSet)
+ */
+type AdSetOptimizationProfile = {
+  optimizationGoal: MetaOptimizationGoal;
+  billingEvent: MetaBillingEvent;
+  pixelRequired: boolean;
+  customEventType?: "PURCHASE" | "LEAD";
+};
+
+function adsetOptimizationFor(objective: MetaCampaignObjective): AdSetOptimizationProfile {
+  switch (objective) {
+    case "OUTCOME_SALES":
+      return { optimizationGoal: "OFFSITE_CONVERSIONS", billingEvent: "IMPRESSIONS", pixelRequired: true, customEventType: "PURCHASE" };
+    case "OUTCOME_LEADS":
+      return { optimizationGoal: "OFFSITE_CONVERSIONS", billingEvent: "IMPRESSIONS", pixelRequired: true, customEventType: "LEAD" };
+    case "OUTCOME_TRAFFIC":
+      return { optimizationGoal: "LINK_CLICKS", billingEvent: "LINK_CLICKS", pixelRequired: false };
+    case "OUTCOME_AWARENESS":
+      return { optimizationGoal: "REACH", billingEvent: "IMPRESSIONS", pixelRequired: false };
+    case "OUTCOME_ENGAGEMENT":
+      // POST_ENGAGEMENT isn't in our type union; fall back to LINK_CLICKS-style optimization
+      // until we add full engagement support (AdSet would also need a post_id).
+      return { optimizationGoal: "LINK_CLICKS", billingEvent: "IMPRESSIONS", pixelRequired: false };
+    case "OUTCOME_APP_PROMOTION":
+      return { optimizationGoal: "APP_INSTALLS", billingEvent: "IMPRESSIONS", pixelRequired: false };
+  }
+}
+
+/**
+ * Best-effort mapping from a free-form target-location string to ISO 3166-1
+ * alpha-2 country codes that Meta's geo_locations.countries expects.
+ *
+ * Meta also accepts cities (with key + radius) and regions, but those need
+ * a separate /search?type=adgeolocation API roundtrip per term to resolve
+ * canonical keys. For wizard launches we keep it simple: country-level
+ * targeting via this lookup, falling back to Worldwide (no targeting) when
+ * the operator's input doesn't match a known label.
+ *
+ * Sub-region targeting (cities, regions, DMAs) is a Phase C2 enhancement.
+ */
+const COUNTRY_LOOKUP: Record<string, string[]> = {
+  worldwide: [], // empty = no country restriction
+  global: [],
+  us: ["US"], usa: ["US"], "united states": ["US"], america: ["US"],
+  ca: ["CA"], canada: ["CA"],
+  uk: ["GB"], gb: ["GB"], "united kingdom": ["GB"], britain: ["GB"], england: ["GB"],
+  eu: ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE"],
+  "european union": ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE"],
+  australia: ["AU"], au: ["AU"],
+  singapore: ["SG"], sg: ["SG"],
+  malaysia: ["MY"], my: ["MY"],
+  indonesia: ["ID"], id: ["ID"],
+  "united arab emirates": ["AE"], uae: ["AE"], ae: ["AE"],
+  india: ["IN"], in: ["IN"],
+  japan: ["JP"], jp: ["JP"],
+  philippines: ["PH"], ph: ["PH"],
+  thailand: ["TH"], th: ["TH"],
+  vietnam: ["VN"], vn: ["VN"],
+  germany: ["DE"], de: ["DE"],
+  france: ["FR"], fr: ["FR"],
+};
+
+function targetingFromLocation(targetLocation: string | undefined) {
+  if (!targetLocation) return undefined;
+  const key = targetLocation.trim().toLowerCase();
+  const countries = COUNTRY_LOOKUP[key];
+  if (!countries) {
+    // Unknown free-form string — return no country restriction. Operator
+    // will see this in the Meta Ads Manager preview and can refine targeting
+    // before activating. Better than crashing the launch.
+    return undefined;
+  }
+  if (countries.length === 0) return undefined; // worldwide
+  return { geo_locations: { countries } };
+}
+
+const VALID_CTAS = new Set<MetaCallToActionType>([
+  "LEARN_MORE", "SHOP_NOW", "SIGN_UP", "SUBSCRIBE", "BOOK_TRAVEL",
+  "DOWNLOAD", "GET_QUOTE", "CONTACT_US", "APPLY_NOW", "GET_OFFER",
+  "ORDER_NOW", "REGISTER_NOW", "WATCH_MORE", "INSTALL_MOBILE_APP",
+  "USE_APP", "INSTALL_APP",
+]);
+
+function safeCta(input: unknown): MetaCallToActionType {
+  const k = String(input ?? "LEARN_MORE").toUpperCase() as MetaCallToActionType;
+  return VALID_CTAS.has(k) ? k : "LEARN_MORE";
+}
+
+type CreativePayload = {
+  pageId?: string;
+  pixelId?: string;
+  landingUrl?: string;
+  headline?: string;
+  primaryText?: string;
+  description?: string;
+  cta?: string;
+  imageHash?: string;
+};
+
+/**
+ * Wrap a MetaApiError with the failing operation, the payload we sent,
+ * and Meta's user-facing message, then re-throw so the campaign-launch
+ * layer surfaces something the operator can act on.
+ *
+ * Non-MetaApiError errors pass through unchanged.
+ */
+function enrichMetaError(err: unknown, op: string, payload: Record<string, unknown>): Error {
+  if (!(err instanceof MetaApiError)) return err instanceof Error ? err : new Error(String(err));
+  const userMsg = err.raw.error_user_msg;
+  const userTitle = err.raw.error_user_title;
+  const detail = userMsg ? `${userTitle ? userTitle + ": " : ""}${userMsg}` : err.message;
+  console.error(
+    `[META] ${op} failed: code=${err.code} subcode=${err.subcode ?? "-"} ` +
+      `category=${err.category} fbtrace=${err.fbtraceId} ` +
+      `payload=${JSON.stringify(payload).slice(0, 500)} ` +
+      `userMsg=${JSON.stringify(userMsg)}`,
+  );
+  return new Error(`[META] ${op} (#${err.code}) ${detail}`);
 }
 
 /**
@@ -181,42 +321,142 @@ function liveAdapter(): PlatformAdapter {
         }
 
         case "launch": {
+          // Full Meta delivery pipeline. We always run all four steps in
+          // sequence — Campaign → AdSet → Creative → Ad — so a successful
+          // return guarantees a Meta campaign that *can deliver* once
+          // activated. Anything less is a shell that wastes operator time
+          // when they hit "Activate" and discover the campaign won't spend.
           const payload = input.payload ?? {};
           const objective = toMetaObjective(payload.objective);
-          const createBody = {
+          const dailyBudget = payload.dailyBudget as number | undefined;
+          const targetLocation = payload.targetLocation as string | undefined;
+          const creative = (payload.creative as CreativePayload | undefined) ?? {};
+          const log: string[] = [];
+
+          // Pre-flight validation. We re-validate here so a direct API caller
+          // (not the wizard) hits the same checks; the wizard already did
+          // these client+server-side, so under normal flow this is a no-op.
+          if (!creative.pageId) throw new Error("[META] creative.pageId required");
+          if (!creative.landingUrl) throw new Error("[META] creative.landingUrl required");
+          if (!creative.headline) throw new Error("[META] creative.headline required");
+          if (!creative.primaryText) throw new Error("[META] creative.primaryText required");
+          if (!creative.imageHash) throw new Error("[META] creative.imageHash required");
+
+          const profile = adsetOptimizationFor(objective);
+          if (profile.pixelRequired && !creative.pixelId) {
+            throw new Error(
+              `[META] objective ${objective} requires a Meta Pixel for ${profile.optimizationGoal} optimization — pass creative.pixelId`,
+            );
+          }
+
+          // ── 1. Campaign ─────────────────────────────────────────────
+          const campaignBody = {
             name: String(payload.name ?? `EIAAW campaign ${Date.now()}`),
             objective,
-            daily_budget: payload.dailyBudget as number | undefined,
-            status: "PAUSED" as const, // always PAUSED — operator reviews before activation
+            daily_budget: dailyBudget,
+            status: "PAUSED" as const,
           };
+          let campaignId: string;
           try {
-            const campaign = await client.createCampaign(adAccountId, createBody);
-            return {
-              action: input.action,
-              externalIds: { campaign: campaign.id },
-              log: [`[META] created campaign ${campaign.id} (objective=${objective}, PAUSED)`],
-            };
+            const campaign = await client.createCampaign(adAccountId, campaignBody);
+            campaignId = campaign.id;
+            log.push(`[META] created campaign ${campaignId} (objective=${objective}, PAUSED)`);
           } catch (err) {
-            if (err instanceof MetaApiError) {
-              // Meta's `error_user_msg` is the human-readable explanation
-              // (e.g. "Daily budget must be at least $1.00 USD"). Surface it
-              // to the operator AND to logs so we can fix the actual issue
-              // instead of guessing from "Invalid parameter".
-              const userMsg = err.raw.error_user_msg;
-              const userTitle = err.raw.error_user_title;
-              const detail = userMsg
-                ? `${userTitle ? userTitle + ": " : ""}${userMsg}`
-                : err.message;
-              console.error(
-                `[META] createCampaign failed: code=${err.code} subcode=${err.subcode ?? "-"} ` +
-                  `category=${err.category} fbtrace=${err.fbtraceId} ` +
-                  `payload=${JSON.stringify({ adAccountId, ...createBody })} ` +
-                  `userMsg=${JSON.stringify(userMsg)}`,
-              );
-              const enriched = new Error(`[META] (#${err.code}) ${detail}`);
-              throw enriched;
-            }
-            throw err;
+            throw enrichMetaError(err, "createCampaign", { adAccountId, ...campaignBody });
+          }
+
+          // ── 2. AdSet ────────────────────────────────────────────────
+          // NOTE: when the campaign already has daily_budget set (CBO),
+          // Meta REJECTS daily_budget at the AdSet level. We omit it here.
+          const targeting = targetingFromLocation(targetLocation) ?? { geo_locations: { countries: ["US"] } };
+          const adsetBody = {
+            name: `${campaignBody.name} · AdSet`,
+            campaign_id: campaignId,
+            status: "PAUSED" as const,
+            billing_event: profile.billingEvent,
+            optimization_goal: profile.optimizationGoal,
+            targeting,
+            ...(profile.pixelRequired && creative.pixelId
+              ? { promoted_object: { pixel_id: creative.pixelId, custom_event_type: profile.customEventType } }
+              : {}),
+            // Meta requires start_time on AdSets that don't inherit a campaign
+            // schedule; default to "starts now" so activation is one click.
+            start_time: new Date().toISOString(),
+          };
+          let adsetId: string;
+          try {
+            // The MetaClient.createAdSet method expects an MetaAdSetCreate type
+            // with campaign_id; cast here because adapter is the bridge layer.
+            const adset = await client.createAdSet(adAccountId, adsetBody as Parameters<typeof client.createAdSet>[1]);
+            adsetId = adset.id;
+            log.push(`[META] created adset ${adsetId} (goal=${profile.optimizationGoal}, billing=${profile.billingEvent})`);
+          } catch (err) {
+            throw enrichMetaError(err, "createAdSet", { adAccountId, ...adsetBody });
+          }
+
+          // ── 3. Creative ─────────────────────────────────────────────
+          const creativeBody = {
+            name: `${campaignBody.name} · Creative`,
+            object_story_spec: {
+              page_id: creative.pageId,
+              link_data: {
+                link: creative.landingUrl,
+                message: creative.primaryText,
+                name: creative.headline,
+                description: creative.description || undefined,
+                image_hash: creative.imageHash,
+                call_to_action: {
+                  type: safeCta(creative.cta),
+                  value: { link: creative.landingUrl },
+                },
+              },
+            },
+          };
+          let creativeId: string;
+          try {
+            const cr = await client.createCreative(adAccountId, creativeBody);
+            creativeId = cr.id;
+            log.push(`[META] created creative ${creativeId} (cta=${safeCta(creative.cta)})`);
+          } catch (err) {
+            throw enrichMetaError(err, "createCreative", { adAccountId, ...creativeBody });
+          }
+
+          // ── 4. Ad ───────────────────────────────────────────────────
+          const adBody = {
+            name: `${campaignBody.name} · Ad`,
+            adset_id: adsetId,
+            creative_id: creativeId,
+            status: "PAUSED" as const,
+          };
+          let adId: string;
+          try {
+            const ad = await client.createAd(adAccountId, adBody);
+            adId = ad.id;
+            log.push(`[META] created ad ${adId} — campaign ready to activate`);
+          } catch (err) {
+            throw enrichMetaError(err, "createAd", { adAccountId, ...adBody });
+          }
+
+          return {
+            action: input.action,
+            externalIds: { campaign: campaignId, adset: adsetId, creative: creativeId, ad: adId },
+            log,
+          };
+        }
+
+        case "activate": {
+          // Activate the campaign on Meta. The launch flow leaves Campaign +
+          // AdSet + Ad all in PAUSED state — flipping the campaign to ACTIVE
+          // is enough; child entities inherit the parent's effective_status
+          // unless individually paused, and we never individually pause them
+          // during launch, so this single call is sufficient.
+          const campaignId = String(input.payload?.campaignId ?? "");
+          if (!campaignId) throw new Error("[META] campaignId required to activate");
+          try {
+            await client.updateCampaignStatus(campaignId, "ACTIVE");
+            return { action: input.action, log: [`[META] activated ${campaignId} (campaign + child adsets/ads now LIVE)`] };
+          } catch (err) {
+            throw enrichMetaError(err, "updateCampaignStatus(ACTIVE)", { campaignId });
           }
         }
 

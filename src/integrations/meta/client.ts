@@ -14,6 +14,9 @@ import {
   type MetaInsightsParams,
   type MetaInsightsRow,
   type MetaPaged,
+  type MetaPage,
+  type MetaPixel,
+  type MetaImageUploadResponse,
 } from "./types";
 
 /**
@@ -201,6 +204,95 @@ export class MetaClient {
       },
     });
     return res.data;
+  }
+
+  // ── Pages ─────────────────────────────────────────────────────────
+  // Required for ad creatives (object_story_spec.page_id). The user must
+  // have granted pages_show_list during OAuth — without that scope this
+  // returns []. We additionally filter to pages where the user has the
+  // ADVERTISE task; only those can run paid ads through our app.
+
+  async listPages(limit = 100): Promise<MetaPage[]> {
+    const res = await this.request<MetaPaged<MetaPage>>("GET", "/me/accounts", {
+      query: {
+        fields: "id,name,category,tasks",
+        limit,
+      },
+    });
+    // Tasks may be missing on older app permissions; in that case fall back
+    // to returning everything and let the createCreative call surface a
+    // (#200) error with a meaningful user_msg if the user picks a page they
+    // don't have ADVERTISE rights on.
+    return res.data.filter((p) => !p.tasks || p.tasks.includes("ADVERTISE"));
+  }
+
+  // ── Pixels ────────────────────────────────────────────────────────
+  // Required for OUTCOME_SALES / conversion-optimized AdSets. Without a
+  // pixel + custom_event_type, OUTCOME_SALES has nothing to optimize
+  // against and Meta either rejects or silently degrades to LINK_CLICKS.
+
+  async listPixels(adAccountId: string, limit = 50): Promise<MetaPixel[]> {
+    const id = this.qualifiedAccountId(adAccountId);
+    const res = await this.request<MetaPaged<MetaPixel>>("GET", `/${id}/adspixels`, {
+      query: {
+        fields: "id,name,code,last_fired_time,is_unavailable",
+        limit,
+      },
+    });
+    return res.data.filter((p) => !p.is_unavailable);
+  }
+
+  // ── Image upload ──────────────────────────────────────────────────
+  // POST /act_X/adimages with multipart/form-data — returns image_hash
+  // which is what creative.object_story_spec.link_data.image_hash refers
+  // to. We do NOT route this through `request()` because that helper
+  // forces JSON content-type + body serialization.
+
+  async uploadImage(adAccountId: string, file: { bytes: Uint8Array; filename: string }): Promise<{ hash: string; url: string }> {
+    const id = this.qualifiedAccountId(adAccountId);
+    const url = new URL(`${this.baseUrl}/${id}/adimages`);
+    url.searchParams.set("access_token", this.accessToken);
+
+    // Meta treats the "filename" as the key in the response.images map.
+    // Sanitize it so we can index reliably (no spaces / special chars).
+    const safeName = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    const form = new FormData();
+    // Detect content-type by file extension. Meta accepts JPEG/PNG/GIF
+    // for ad creatives; non-supported formats return (#100) Invalid file.
+    const ext = safeName.split(".").pop()?.toLowerCase();
+    const contentType =
+      ext === "png"
+        ? "image/png"
+        : ext === "gif"
+          ? "image/gif"
+          : ext === "webp"
+            ? "image/webp"
+            : "image/jpeg";
+    form.append("source", new Blob([file.bytes as BlobPart], { type: contentType }), safeName);
+
+    const res = await this.fetchImpl(url.toString(), { method: "POST", body: form });
+    const text = await res.text();
+    let body: unknown = {};
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = { raw: text };
+    }
+    const metaErr = tryParseMetaError(body, res.status);
+    if (metaErr) throw metaErr;
+    if (!res.ok) {
+      throw new MetaApiError(
+        { message: `HTTP ${res.status}`, type: "HttpError", code: res.status, fbtrace_id: "" },
+        res.status,
+      );
+    }
+    const parsed = body as MetaImageUploadResponse;
+    const entry = parsed.images?.[safeName];
+    if (!entry?.hash) {
+      throw new Error(`[META] uploadImage: response missing images['${safeName}'].hash — got ${JSON.stringify(parsed).slice(0, 200)}`);
+    }
+    return { hash: entry.hash, url: entry.url };
   }
 
   // ── Campaigns ─────────────────────────────────────────────────────

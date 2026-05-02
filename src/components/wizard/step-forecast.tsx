@@ -88,7 +88,7 @@ export function StepForecast() {
         <Button variant="ghost" onClick={() => setStep("competitor")}>
           <ArrowLeft /> Back
         </Button>
-        <Button variant="secondary" disabled={!scenarios} onClick={() => setStep("launch")}>
+        <Button variant="secondary" disabled={!scenarios} onClick={() => setStep("creative")}>
           Continue <ArrowRight />
         </Button>
       </div>

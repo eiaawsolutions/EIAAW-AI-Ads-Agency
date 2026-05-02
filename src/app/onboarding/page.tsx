@@ -6,6 +6,7 @@ import { StepDna } from "@/components/wizard/step-dna";
 import { StepPlan } from "@/components/wizard/step-plan";
 import { StepCompetitor } from "@/components/wizard/step-competitor";
 import { StepForecast } from "@/components/wizard/step-forecast";
+import { StepCreative } from "@/components/wizard/step-creative";
 import { StepLaunch } from "@/components/wizard/step-launch";
 import { StepDone } from "@/components/wizard/step-done";
 import { Check } from "lucide-react";
@@ -67,6 +68,7 @@ export default function OnboardingPage() {
           {step === "plan" && <StepPlan />}
           {step === "competitor" && <StepCompetitor />}
           {step === "forecast" && <StepForecast />}
+          {step === "creative" && <StepCreative />}
           {step === "launch" && <StepLaunch />}
           {step === "done" && <StepDone />}
         </div>

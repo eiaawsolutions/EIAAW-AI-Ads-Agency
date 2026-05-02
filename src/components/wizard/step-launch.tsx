@@ -15,6 +15,7 @@ export function StepLaunch() {
     targetLocation,
     objective,
     planResult,
+    creative,
     setStep,
     update,
   } = useWizard();
@@ -35,6 +36,22 @@ export function StepLaunch() {
           targetLocation,
           platforms,
           strategy: planResult,
+          // Per-platform creative payloads. Today only Meta needs this; once
+          // Google/TikTok adapters add full-pipeline launch we'll mirror.
+          creatives: platforms.includes("META")
+            ? {
+                META: {
+                  pageId: creative.metaPageId,
+                  pixelId: creative.metaPixelId || undefined,
+                  landingUrl: creative.landingUrl,
+                  headline: creative.headline,
+                  primaryText: creative.primaryText,
+                  description: creative.description || undefined,
+                  cta: creative.cta,
+                  imageHash: creative.imageHash,
+                },
+              }
+            : undefined,
         }),
       });
       const json = (await res.json()) as
@@ -109,7 +126,7 @@ export function StepLaunch() {
       </div>
 
       <div className="mt-10 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setStep("forecast")}>
+        <Button variant="ghost" onClick={() => setStep("creative")}>
           <ArrowLeft /> Back
         </Button>
         <Button variant="secondary" size="lg" onClick={launch} disabled={launching}>

@@ -9,6 +9,7 @@ import {
   type PlatformLaunchState,
 } from "@/components/campaigns/platform-status-row";
 import { RetryPlatformButton } from "@/components/campaigns/retry-platform-button";
+import { ActivatePlatformButton } from "@/components/campaigns/activate-platform-button";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
 
@@ -89,6 +90,16 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
               const meta = (adSet.meta ?? {}) as AdSetMeta;
               const state: PlatformLaunchState = meta.state ?? "draft";
               const showRetry = state === "requires_action" || state === "failed" || state === "draft";
+              // Show Activate when the platform created the campaign upstream
+              // (state === "live" + has externalId) AND our local AdSet still
+              // reflects the platform's PAUSED state. Once activated, state
+              // stays "live" but AdSet.status flips to LIVE — that's our
+              // signal to hide the button.
+              const showActivate =
+                state === "live" &&
+                !!adSet.externalId &&
+                adSet.status !== "LIVE" &&
+                meta.adapterMode === "live";
               return (
                 <PlatformStatusRow
                   key={adSet.id}
@@ -101,6 +112,8 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
                   actions={
                     showRetry ? (
                       <RetryPlatformButton campaignId={campaign.id} platform={adSet.platform} />
+                    ) : showActivate ? (
+                      <ActivatePlatformButton campaignId={campaign.id} platform={adSet.platform} />
                     ) : undefined
                   }
                 />

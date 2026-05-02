@@ -72,12 +72,39 @@ export async function POST(
   };
 
   const dailyBudgetMinor = adSet.dailyBudget ?? 0;
+
+  // Replay the original launch inputs that were persisted on AdSet.meta
+  // by the wizard. Without these, Meta's full-pipeline launch (Campaign →
+  // AdSet → Creative → Ad) will fail because creative.imageHash etc. are
+  // missing. Pre-pipeline campaigns may not have launchInputs persisted —
+  // surface that as a clear error rather than crashing.
+  const adSetMeta = (adSet.meta ?? {}) as {
+    launchInputs?: {
+      targetLocation?: string;
+      currency?: string;
+      creative?: {
+        pageId: string;
+        pixelId?: string;
+        landingUrl: string;
+        headline: string;
+        primaryText: string;
+        description?: string;
+        cta: string;
+        imageHash: string;
+      };
+    };
+  };
+  const replay = adSetMeta.launchInputs;
+
   let result: PlatformLaunchResult;
   try {
     result = await launchOnePlatform(agentCtx, platform, {
       campaignName: campaign.name,
       objective: campaign.objective,
       dailyBudgetMinor,
+      targetLocation: replay?.targetLocation ?? "Worldwide",
+      currency: replay?.currency ?? campaign.currency,
+      creative: replay?.creative,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

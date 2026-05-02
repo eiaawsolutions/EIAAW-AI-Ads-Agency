@@ -44,6 +44,57 @@ export type MetaAdAccount = {
   business?: { id: string; name: string };
 };
 
+// ── Pages (Facebook Pages owned by the connected user) ────────────
+
+export type MetaPage = {
+  id: string;
+  name: string;
+  // Only present on pages where the user has an explicit role assignment.
+  // page_access_token is what we'd need to publish ON BEHALF OF the page,
+  // but for ad-creative object_story_spec we only need page id + the user
+  // token + pages_manage_ads scope.
+  access_token?: string;
+  category?: string;
+  tasks?: string[]; // ["ADVERTISE", "ANALYZE", "MODERATE", "CREATE_CONTENT", "MESSAGING", "MANAGE"]
+};
+
+// ── Pixels (web/server conversion tracking) ───────────────────────
+
+export type MetaPixel = {
+  id: string;
+  name: string;
+  code?: string;
+  last_fired_time?: string;
+  is_unavailable?: boolean;
+};
+
+// ── Image upload response ─────────────────────────────────────────
+
+export type MetaImageUploadResponse = {
+  // /act_X/adimages returns { images: { <filename>: { hash, url } } }
+  images: Record<string, { hash: string; url: string }>;
+};
+
+// ── Call-to-action types Meta supports on link_data creatives ─────
+
+export type MetaCallToActionType =
+  | "LEARN_MORE"
+  | "SHOP_NOW"
+  | "SIGN_UP"
+  | "SUBSCRIBE"
+  | "BOOK_TRAVEL"
+  | "DOWNLOAD"
+  | "GET_QUOTE"
+  | "CONTACT_US"
+  | "APPLY_NOW"
+  | "GET_OFFER"
+  | "ORDER_NOW"
+  | "REGISTER_NOW"
+  | "WATCH_MORE"
+  | "INSTALL_MOBILE_APP"
+  | "USE_APP"
+  | "INSTALL_APP";
+
 // ── Campaign ───────────────────────────────────────────────────────
 
 export type MetaCampaignObjective =
@@ -104,6 +155,29 @@ export type MetaAdSet = {
   start_time?: string;
   end_time?: string;
   bid_amount?: number;
+  // Required for OUTCOME_SALES / OUTCOME_LEADS optimization toward a
+  // specific event. pixel_id + custom_event_type tells Meta which on-site
+  // event to bid against (e.g. "PURCHASE", "LEAD", "ADD_TO_CART").
+  // Without this, OUTCOME_SALES has nothing to optimize against and Meta
+  // either rejects the AdSet (#100, "promoted_object required") or
+  // degrades the optimization to a clicks/impressions proxy.
+  promoted_object?: {
+    pixel_id?: string;
+    custom_event_type?:
+      | "PURCHASE"
+      | "LEAD"
+      | "COMPLETE_REGISTRATION"
+      | "ADD_TO_CART"
+      | "ADD_PAYMENT_INFO"
+      | "INITIATE_CHECKOUT"
+      | "VIEW_CONTENT"
+      | "SUBSCRIBE"
+      | "START_TRIAL"
+      | "OTHER";
+    page_id?: string;
+    application_id?: string;
+    object_store_url?: string;
+  };
 };
 
 export type MetaTargeting = {

@@ -1,7 +1,7 @@
 import type { Platform } from "@prisma/client";
 import type { AgentContext } from "@/agents/types";
 
-export type IntegrationAction = "launch" | "pause" | "optimize" | "sync_metrics";
+export type IntegrationAction = "launch" | "pause" | "activate" | "optimize" | "sync_metrics";
 
 export type IntegrationInput = {
   action: IntegrationAction;

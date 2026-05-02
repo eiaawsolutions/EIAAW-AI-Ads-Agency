@@ -2,7 +2,27 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type WizardStep = "welcome" | "dna" | "plan" | "competitor" | "forecast" | "launch" | "done";
+export type WizardStep =
+  | "welcome"
+  | "dna"
+  | "plan"
+  | "competitor"
+  | "forecast"
+  | "creative"
+  | "launch"
+  | "done";
+
+export type CreativeCta =
+  | "LEARN_MORE"
+  | "SHOP_NOW"
+  | "SIGN_UP"
+  | "SUBSCRIBE"
+  | "DOWNLOAD"
+  | "GET_QUOTE"
+  | "CONTACT_US"
+  | "APPLY_NOW"
+  | "ORDER_NOW"
+  | "BOOK_TRAVEL";
 
 export type WizardLaunchResult = {
   platform: string;
@@ -40,6 +60,23 @@ export type WizardState = {
   competitorResult?: Record<string, unknown>;
   // Forecast
   forecastResult?: Record<string, unknown>;
+  // Creative — required for any platform that needs an actual ad to deliver
+  // (currently Meta; Google/TikTok/etc. will reuse most of these once their
+  // adapters add full-pipeline launch support).
+  creative: {
+    metaPageId: string;
+    metaPageName: string;
+    metaPixelId: string;       // empty when objective doesn't need a pixel
+    metaPixelName: string;
+    landingUrl: string;
+    headline: string;          // <= 40 chars (Meta truncates above this on most placements)
+    primaryText: string;       // <= 125 chars on most placements; we don't enforce here
+    description: string;       // optional <= 30 chars (link description)
+    cta: CreativeCta;
+    imageHash: string;         // returned by /act_X/adimages
+    imagePreviewUrl: string;   // also returned, for in-wizard preview
+    imageFilename: string;     // for display only
+  };
   // Launch
   launchOutcome?: WizardLaunchOutcome;
   loading: boolean;
@@ -58,13 +95,27 @@ const INITIAL: Omit<WizardState, "setStep" | "update" | "reset"> = {
   platforms: ["META", "GOOGLE"],
   targetLocation: "Worldwide",
   currency: "USD",
+  creative: {
+    metaPageId: "",
+    metaPageName: "",
+    metaPixelId: "",
+    metaPixelName: "",
+    landingUrl: "",
+    headline: "",
+    primaryText: "",
+    description: "",
+    cta: "LEARN_MORE",
+    imageHash: "",
+    imagePreviewUrl: "",
+    imageFilename: "",
+  },
   loading: false,
 };
 
 // Bump this when WizardState shape changes. Older persisted payloads are
 // dropped on rehydrate rather than feeding partial/incompatible data into
 // step components, which can crash the page during client hydration.
-const STORE_VERSION = 5;
+const STORE_VERSION = 6;
 
 export const useWizard = create<WizardState>()(
   persist(
@@ -94,6 +145,7 @@ export const STEPS: { key: WizardStep; label: string }[] = [
   { key: "plan", label: "Strategy" },
   { key: "competitor", label: "Competitors" },
   { key: "forecast", label: "Forecast" },
+  { key: "creative", label: "Creative" },
   { key: "launch", label: "Launch" },
   { key: "done", label: "Live" },
 ];

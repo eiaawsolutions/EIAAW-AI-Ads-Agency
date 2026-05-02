@@ -183,6 +183,7 @@ function liveAdapter(): PlatformAdapter {
         // can show a "requires Standard Access" affordance.
         case "launch":
         case "pause":
+        case "activate":
         case "optimize":
           return {
             action: input.action,
