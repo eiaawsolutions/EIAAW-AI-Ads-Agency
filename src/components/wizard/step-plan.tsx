@@ -7,6 +7,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { apiFetch } from "@/lib/api-client";
 import { useWizard } from "./wizard-store";
+import {
+  MIN_MONTHLY_BUDGET_USD,
+  MIN_DAILY_BUDGET_USD,
+  checkMonthlyBudget,
+} from "@/lib/budget-floor";
 
 const OBJECTIVES = [
   { v: "SALES", l: "Online sales" },
@@ -68,6 +73,8 @@ export function StepPlan() {
     update({ platforms: platforms.includes(p) ? platforms.filter((x) => x !== p) : [...platforms, p] });
   }
 
+  const budgetCheck = checkMonthlyBudget(monthlyBudget, currency);
+
   async function build() {
     if (platforms.length === 0) {
       toast.error("Select at least one platform");
@@ -75,6 +82,10 @@ export function StepPlan() {
     }
     if (!targetLocation.trim()) {
       toast.error("Enter a target location");
+      return;
+    }
+    if (!budgetCheck.ok) {
+      toast.error(budgetCheck.reason);
       return;
     }
     setLoading(true);
@@ -194,10 +205,22 @@ export function StepPlan() {
             <Input
               id="budget"
               type="number"
-              min={500}
+              min={MIN_MONTHLY_BUDGET_USD}
+              step={10}
               value={monthlyBudget}
               onChange={(e) => update({ monthlyBudget: Number(e.target.value) })}
+              className={!budgetCheck.ok ? "border-coral-500 focus-visible:ring-coral-500" : undefined}
+              aria-invalid={!budgetCheck.ok}
+              aria-describedby="budget-help"
             />
+            <p
+              id="budget-help"
+              className={`text-2xs ${budgetCheck.ok ? "text-muted-foreground" : "text-coral-600"}`}
+            >
+              {budgetCheck.ok
+                ? `Min ${currency} ${MIN_MONTHLY_BUDGET_USD}/mo (≈ ${currency} ${MIN_DAILY_BUDGET_USD}/day) — Meta and other platforms reject lower amounts.`
+                : budgetCheck.reason}
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="cpa">Target CPA ({currency})</Label>
@@ -242,7 +265,7 @@ export function StepPlan() {
           </div>
         </div>
 
-        <Button onClick={build} disabled={loading} variant="secondary">
+        <Button onClick={build} disabled={loading || !budgetCheck.ok} variant="secondary">
           {loading ? (
             <>
               <Loader2 className="animate-spin" /> Building strategy

@@ -3,6 +3,7 @@ import { Platform } from "@prisma/client";
 import { resolveOrgId } from "@/lib/resolve-org";
 import { rateLimit } from "@/lib/rate-limit";
 import { launchCampaign } from "@/lib/campaign-launch";
+import { checkMonthlyBudget } from "@/lib/budget-floor";
 
 const VALID_OBJECTIVES = ["SALES", "LEADS", "APP_INSTALLS", "TRAFFIC", "AWARENESS", "ENGAGEMENT"] as const;
 const VALID_PLATFORMS = new Set<Platform>(Object.values(Platform));
@@ -67,11 +68,16 @@ function parseBody(raw: unknown): ParsedBody {
   }
 
   const monthlyBudget = Number(b.monthlyBudget);
-  if (!Number.isFinite(monthlyBudget) || monthlyBudget <= 0) {
-    return { error: "monthlyBudget must be a positive number" };
-  }
-
   const currency = typeof b.currency === "string" && b.currency ? b.currency : "USD";
+
+  // Safety floor — defense in depth in case the wizard validation is
+  // bypassed. Meta rejects daily_budget < $5 USD with #100 subcode 2446375
+  // ("This campaign's budget is too small."). The floor module makes the
+  // limit visible in one place and gives operators an actionable message.
+  const budgetCheck = checkMonthlyBudget(monthlyBudget, currency);
+  if (!budgetCheck.ok) {
+    return { error: budgetCheck.reason };
+  }
   const targetLocation =
     typeof b.targetLocation === "string" && b.targetLocation ? b.targetLocation : "Worldwide";
 
