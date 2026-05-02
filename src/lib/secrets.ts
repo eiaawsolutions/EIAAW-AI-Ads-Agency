@@ -20,7 +20,7 @@
  */
 
 import { InfisicalSDK } from "@infisical/sdk";
-import { RESOLVABLE_ENV_KEYS } from "@/config/secrets";
+import { RESOLVABLE_ENV_KEYS, isOptionalEnvKey } from "@/config/secrets";
 
 type CacheEntry = { value: string; expiresAt: number };
 
@@ -156,7 +156,23 @@ export async function resolveEnvFromInfisical(): Promise<{
       process.env[key] = value;
       resolved.push(key);
     } catch (err) {
-      failed.push({ key, reason: err instanceof Error ? err.message : String(err) });
+      const reason = err instanceof Error ? err.message : String(err);
+      // Optional keys: a 404 ("not found") means the operator hasn't
+      // provisioned this handle yet — that's acceptable, the consuming
+      // code has a graceful fallback (e.g., STRIPE_PRICE_* lazy-create,
+      // adapters fall back to stub mode). Non-404 errors (network,
+      // auth, malformed) on optional keys still fail to surface real
+      // problems.
+      const is404 = /not\s*found|404|StatusCode=404/i.test(reason);
+      if (is404 && isOptionalEnvKey(key)) {
+        console.warn(`[infisical] optional ${key} not found in Infisical — skipping (consuming code has fallback)`);
+        // Clear the unresolved handle so consuming code sees undefined,
+        // not the literal "secret://..." string.
+        delete process.env[key];
+        skipped.push(key);
+      } else {
+        failed.push({ key, reason });
+      }
     }
   }
 

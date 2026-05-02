@@ -148,21 +148,44 @@ function parseBody(raw: unknown): ParsedBody {
 }
 
 /**
- * Returns a Stripe price ID for the plan. Prefers env-configured ID
- * (STRIPE_PRICE_STARTER etc.), falls back to lazy-creating a Product +
- * recurring monthly Price. The created price ID is logged so the operator
- * can persist it back into Infisical for stable reuse.
+ * Resolves a Stripe price ID for the plan. Three-tier lookup matching the
+ * SMT (Sales Marketing Agent) pattern at Sales marketing agent/src/routes/billing.js:325-345:
+ *   1. DB Setting cache (key = `stripe_price_${plan}`) — survives restarts,
+ *      no Infisical roundtrip, no Stripe API call
+ *   2. STRIPE_PRICE_<PLAN> env var — for operators who pre-create prices
+ *      in Stripe Dashboard and pin the IDs
+ *   3. Lazy-create Product + recurring monthly Price in Stripe — first-
+ *      run convenience; persist the new ID to the DB cache for next time
+ *
+ * Net effect: the app can sign up its first paying customer without ANY
+ * pre-provisioned price IDs. Stripe creates them, we cache them, every
+ * subsequent checkout uses the cached ID. This is exactly what makes the
+ * SMT signup flow work without operator intervention.
  */
 async function resolvePriceId(
   planKey: keyof typeof PLAN_CATALOG,
   catalog: (typeof PLAN_CATALOG)[keyof typeof PLAN_CATALOG],
 ): Promise<string> {
+  const settingKey = `stripe_price_${planKey.toLowerCase()}`;
+
+  // 1. DB cache
+  const cached = await db.setting.findUnique({ where: { key: settingKey } });
+  if (cached?.value && cached.value.startsWith("price_")) return cached.value;
+
+  // 2. Env (operator-pinned)
   const fromEnv = PRICE_IDS[planKey];
-  if (fromEnv && fromEnv.startsWith("price_")) return fromEnv;
+  if (fromEnv && fromEnv.startsWith("price_")) {
+    // Backfill the cache so the next checkout skips both DB miss + env read.
+    await db.setting.upsert({
+      where: { key: settingKey },
+      update: { value: fromEnv },
+      create: { key: settingKey, value: fromEnv },
+    });
+    return fromEnv;
+  }
 
+  // 3. Lazy-create in Stripe
   if (!stripe) throw new Error("stripe client unavailable");
-
-  // Lazy-create. SMT pattern at billing.js:329-345.
   const product = await stripe.products.create({
     name: `EIAAW Ai Ads Agency — ${catalog.name}`,
     description: catalog.description,
@@ -173,9 +196,13 @@ async function resolvePriceId(
     currency: "usd",
     recurring: { interval: "month" },
   });
+  await db.setting.upsert({
+    where: { key: settingKey },
+    update: { value: price.id },
+    create: { key: settingKey, value: price.id },
+  });
   console.log(
-    `[stripe.checkout] lazy-created price for ${planKey}: ${price.id}. ` +
-      `Persist this in Infisical at secret://eiaaw-ai-ads-agency-prod/prod/STRIPE_PRICE_${planKey} for stable reuse.`,
+    `[stripe.checkout] lazy-created + cached price for ${planKey}: ${price.id} (product ${product.id})`,
   );
   return price.id;
 }

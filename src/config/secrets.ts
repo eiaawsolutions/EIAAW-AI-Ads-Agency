@@ -15,12 +15,23 @@
  *     keeping these raw is the convention for DB connection strings
  *   - NODE_ENV / AUTH_URL / PORT — non-secret runtime config
  *
- * Add new keys here as new integrations are wired. The resolver
- * silently passes through empty values, so it's safe to leave unset
- * keys in the list during incremental rollout.
+ * Required vs optional:
+ *   - REQUIRED keys missing in Infisical (404) HARD-FAIL the boot. Use
+ *     for anything the app cannot start or operate without.
+ *   - OPTIONAL keys missing in Infisical are warned + skipped. Use for
+ *     handles that the code already has a graceful fallback for. The
+ *     SMT (Sales Marketing Agent) pattern is the reference: it stores
+ *     Stripe price IDs in DB and lazy-creates them in Stripe on first
+ *     checkout when not yet known. Same pattern here for STRIPE_PRICE_*.
+ *
+ * Add new keys here as new integrations are wired.
  */
 
-export const RESOLVABLE_ENV_KEYS = [
+/**
+ * Hard-required: a 404 from Infisical for any of these crashes the boot.
+ * Use only for handles the app genuinely cannot start without.
+ */
+export const REQUIRED_ENV_KEYS = [
   // Auth
   "AUTH_SECRET",
   "AUTH_GOOGLE_ID",
@@ -29,26 +40,38 @@ export const RESOLVABLE_ENV_KEYS = [
   // Anthropic (agent brain)
   "ANTHROPIC_API_KEY",
 
-  // Stripe
+  // Stripe core (signup flow needs these to function)
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
+
+  // Token-encryption + worker
+  "EIAAW_ENCRYPTION_KEY",
+  "EIAAW_WORKER_SECRET",
+] as const;
+
+/**
+ * Optional: a 404 from Infisical for any of these is logged + skipped.
+ * The consuming code is responsible for graceful fallback.
+ */
+export const OPTIONAL_ENV_KEYS = [
+  // Stripe price IDs — lazy-created in Stripe on first checkout if absent.
+  // Persisted to the Setting model (DB) for reuse across restarts.
   "STRIPE_PRICE_STARTER",
   "STRIPE_PRICE_GROWTH",
   "STRIPE_PRICE_ENTERPRISE",
 
-  // Token-encryption + cost-cap override + worker
-  "EIAAW_ENCRYPTION_KEY",
+  // Cost-cap override (admin-only emergency switch — app runs without it)
   "EIAAW_COST_OVERRIDE_SECRET",
-  "EIAAW_WORKER_SECRET",
 
-  // Rate limiting
+  // Rate limiting (Redis falls back to in-memory if unset)
   "UPSTASH_REDIS_REST_URL",
   "UPSTASH_REDIS_REST_TOKEN",
 
-  // Observability
+  // Observability (Sentry off-by-default if unset)
   "SENTRY_DSN",
 
-  // Ad platform OAuth credentials (added incrementally per platform)
+  // Ad platform OAuth credentials — each adapter falls back to stub mode
+  // if its creds are missing.
   "META_APP_ID",
   "META_APP_SECRET",
   "GOOGLE_ADS_CLIENT_ID",
@@ -68,5 +91,20 @@ export const RESOLVABLE_ENV_KEYS = [
   "APPLE_ADS_KEY_ID",
   "APPLE_ADS_PRIVATE_KEY",
 ] as const;
+
+/**
+ * Combined list — what the resolver walks. Order: required first so a
+ * missing required handle fails fast before we waste API calls on optional
+ * keys.
+ */
+export const RESOLVABLE_ENV_KEYS = [
+  ...REQUIRED_ENV_KEYS,
+  ...OPTIONAL_ENV_KEYS,
+] as const;
+
+const OPTIONAL_SET = new Set<string>(OPTIONAL_ENV_KEYS);
+export function isOptionalEnvKey(key: string): boolean {
+  return OPTIONAL_SET.has(key);
+}
 
 export type ResolvableEnvKey = (typeof RESOLVABLE_ENV_KEYS)[number];

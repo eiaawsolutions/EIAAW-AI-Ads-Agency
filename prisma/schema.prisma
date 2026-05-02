@@ -620,3 +620,22 @@ model JobStep {
   @@unique([jobId, index])
   @@index([jobId, status])
 }
+
+// ─────────────────────────────────────────────────────────────
+// Settings (system-scoped key/value cache)
+// ─────────────────────────────────────────────────────────────
+//
+// Tiny KV table for system-level config that gets created at runtime
+// (not by the operator pre-provisioning Infisical). Mirrors the SMT
+// (Sales Marketing Agent) `settings` table pattern:
+//   - Stripe price IDs lazy-created on first checkout, cached here for
+//     reuse across container restarts.
+//   - Future: Stripe customer ID per org? Webhook idempotency tokens?
+//
+// NOT for tenant-scoped data (use org-scoped tables for that). NOT for
+// secrets (use Infisical for that).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
