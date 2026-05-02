@@ -54,10 +54,11 @@ export class MetaOAuthClient {
     redirectUri: string,
     state: string,
     // pages_show_list — read /me/accounts to populate the wizard's Page picker.
-    // pages_manage_ads — required to set page_id on object_story_spec when
-    // creating an ad creative. Without it, /act_X/adcreatives returns
-    // (#200) "The user has not granted the application permission to ..."
-    // and the campaign sits as an empty shell with no deliverable ad.
+    // ads_management already covers creating ad creatives that reference a
+    // Page on behalf of the connected user (object_story_spec.page_id),
+    // provided the user has the ADVERTISE task on that Page. There is no
+    // longer a separate `pages_manage_ads` scope — Meta deprecated it; the
+    // OAuth dialog returns "Invalid Scopes: pages_manage_ads" if requested.
     // business_management — needed for accounts that wrap the user's pages
     // and ad accounts inside Business Manager (most agency accounts).
     scopes: string[] = [
@@ -65,7 +66,6 @@ export class MetaOAuthClient {
       "ads_read",
       "business_management",
       "pages_show_list",
-      "pages_manage_ads",
     ],
   ): string {
     const url = new URL(`https://www.facebook.com/${this.apiVersion}/dialog/oauth`);
