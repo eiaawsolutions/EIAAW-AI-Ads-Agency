@@ -4,6 +4,22 @@ import { persist } from "zustand/middleware";
 
 export type WizardStep = "welcome" | "dna" | "plan" | "competitor" | "forecast" | "launch" | "done";
 
+export type WizardLaunchResult = {
+  platform: string;
+  state: "live" | "draft" | "requires_action" | "failed";
+  externalCampaignId: string | null;
+  reason: string;
+  remediation: { label: string; href: string } | null;
+  adapterMode: "live" | "stub";
+};
+
+export type WizardLaunchOutcome = {
+  campaignId: string;
+  campaignName: string;
+  rollupStatus: "DRAFT" | "SCHEDULED" | "LIVE" | "PAUSED" | "ARCHIVED";
+  results: WizardLaunchResult[];
+};
+
 export type WizardState = {
   step: WizardStep;
   // DNA
@@ -24,6 +40,8 @@ export type WizardState = {
   competitorResult?: Record<string, unknown>;
   // Forecast
   forecastResult?: Record<string, unknown>;
+  // Launch
+  launchOutcome?: WizardLaunchOutcome;
   loading: boolean;
   setStep: (s: WizardStep) => void;
   update: (patch: Partial<WizardState>) => void;
@@ -46,7 +64,7 @@ const INITIAL: Omit<WizardState, "setStep" | "update" | "reset"> = {
 // Bump this when WizardState shape changes. Older persisted payloads are
 // dropped on rehydrate rather than feeding partial/incompatible data into
 // step components, which can crash the page during client hydration.
-const STORE_VERSION = 4;
+const STORE_VERSION = 5;
 
 export const useWizard = create<WizardState>()(
   persist(

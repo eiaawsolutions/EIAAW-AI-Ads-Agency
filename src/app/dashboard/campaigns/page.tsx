@@ -94,7 +94,11 @@ export default async function CampaignsPage() {
               <tbody>
                 {rows.map((c, i) => (
                   <tr key={c.id} className={`hover:bg-surface-1/60 transition-colors duration-150 ${i > 0 ? "hairline-t" : ""}`}>
-                    <td className="px-5 py-3.5 text-sm font-medium text-foreground">{c.name}</td>
+                    <td className="px-5 py-3.5 text-sm font-medium text-foreground">
+                      <Link href={`/dashboard/campaigns/${c.id}`} className="hover:text-primary hover:underline">
+                        {c.name}
+                      </Link>
+                    </td>
                     <td className="px-5 py-3.5">
                       <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>{c.status}</Badge>
                     </td>

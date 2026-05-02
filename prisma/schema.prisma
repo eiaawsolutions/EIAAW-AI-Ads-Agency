@@ -360,6 +360,11 @@ model AdSet {
   dailyBudget  Int?
   bidStrategy  String?
   status       CampaignStatus @default(DRAFT)
+  // Per-platform launch outcome:
+  // { state: 'pending'|'live'|'paused'|'failed'|'requires_action',
+  //   reason: string, remediation: { label, href }|null,
+  //   adapterMode: 'live'|'stub', launchedAt, log: string[] }
+  meta         Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
