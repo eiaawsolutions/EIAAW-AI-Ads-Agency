@@ -71,16 +71,51 @@ function liveAdapter(): PlatformAdapter {
       const short = await oauth.exchangeCode(code, redirectUri);
       // Upgrade to ~60d long-lived token so we don't churn through refresh.
       const long = await oauth.exchangeForLongLived(short.accessToken).catch(() => short);
-      // Debug to extract scopes and user id for the Integration row.
+      // Debug to extract scopes for the Integration row. user_id is captured
+      // for telemetry only — DO NOT use it as adAccountId.
       const debug = await oauth.debugToken(long.accessToken).catch(() => null);
+
+      // Resolve the user's ad accounts. We need the first usable account_id
+      // to store as externalId — the rest of the codebase (campaign launch,
+      // insights sync, retry) treats Integration.externalId as the AD ACCOUNT
+      // ID and prefixes it with `act_` before calling Meta. Storing the
+      // user's Facebook UID here was the original bug — it produced calls
+      // like POST /act_<USER_ID>/campaigns which Meta rejects with
+      // "Object does not exist or no permission".
+      let adAccountId: string | undefined;
+      let displayName = "Meta";
+      try {
+        const client = new MetaClient({ accessToken: long.accessToken });
+        const accounts = await client.listAdAccounts(50);
+        // Pick the first account_status=1 (active) account; fall back to any.
+        const usable = accounts.find((a) => a.account_status === 1) ?? accounts[0];
+        if (usable) {
+          // listAdAccounts returns id like "act_1234567890" and account_id
+          // like "1234567890". Store the bare account_id — the client adds
+          // the `act_` prefix at call time via qualifiedAccountId().
+          adAccountId = usable.account_id ?? usable.id?.replace(/^act_/, "");
+          displayName = usable.name ? `Meta · ${usable.name}` : "Meta";
+        }
+      } catch (err) {
+        console.warn(
+          "[META] listAdAccounts during OAuth failed:",
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+
+      if (!adAccountId) {
+        throw new Error(
+          "Meta OAuth succeeded but no ad accounts are accessible. Open Business Manager and ensure your user has at least one ad account assigned, then reconnect.",
+        );
+      }
 
       return {
         accessToken: long.accessToken,
         refreshToken: undefined, // Meta doesn't issue refresh tokens for user tokens
         expiresAt: long.expiresAt,
         scopes: debug?.scopes ?? ["ads_management", "ads_read"],
-        externalId: debug?.user_id,
-        displayName: "Meta",
+        externalId: adAccountId,
+        displayName,
       };
     },
 
