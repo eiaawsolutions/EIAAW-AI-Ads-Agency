@@ -2,6 +2,7 @@ import { Platform } from "@prisma/client";
 import type { PlatformAdapter } from "./types";
 import { stubAdapter } from "./_stub";
 import { MetaClient, MetaOAuthClient } from "./meta";
+import { MetaApiError } from "./meta/errors";
 import type { MetaCampaignObjective } from "./meta/types";
 import { loadTokens } from "./token-store";
 import { db } from "@/lib/db";
@@ -182,17 +183,41 @@ function liveAdapter(): PlatformAdapter {
         case "launch": {
           const payload = input.payload ?? {};
           const objective = toMetaObjective(payload.objective);
-          const campaign = await client.createCampaign(adAccountId, {
+          const createBody = {
             name: String(payload.name ?? `EIAAW campaign ${Date.now()}`),
             objective,
             daily_budget: payload.dailyBudget as number | undefined,
-            status: "PAUSED", // always PAUSED — operator reviews before activation
-          });
-          return {
-            action: input.action,
-            externalIds: { campaign: campaign.id },
-            log: [`[META] created campaign ${campaign.id} (objective=${objective}, PAUSED)`],
+            status: "PAUSED" as const, // always PAUSED — operator reviews before activation
           };
+          try {
+            const campaign = await client.createCampaign(adAccountId, createBody);
+            return {
+              action: input.action,
+              externalIds: { campaign: campaign.id },
+              log: [`[META] created campaign ${campaign.id} (objective=${objective}, PAUSED)`],
+            };
+          } catch (err) {
+            if (err instanceof MetaApiError) {
+              // Meta's `error_user_msg` is the human-readable explanation
+              // (e.g. "Daily budget must be at least $1.00 USD"). Surface it
+              // to the operator AND to logs so we can fix the actual issue
+              // instead of guessing from "Invalid parameter".
+              const userMsg = err.raw.error_user_msg;
+              const userTitle = err.raw.error_user_title;
+              const detail = userMsg
+                ? `${userTitle ? userTitle + ": " : ""}${userMsg}`
+                : err.message;
+              console.error(
+                `[META] createCampaign failed: code=${err.code} subcode=${err.subcode ?? "-"} ` +
+                  `category=${err.category} fbtrace=${err.fbtraceId} ` +
+                  `payload=${JSON.stringify({ adAccountId, ...createBody })} ` +
+                  `userMsg=${JSON.stringify(userMsg)}`,
+              );
+              const enriched = new Error(`[META] (#${err.code}) ${detail}`);
+              throw enriched;
+            }
+            throw err;
+          }
         }
 
         case "pause": {
