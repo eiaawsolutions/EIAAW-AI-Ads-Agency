@@ -9,7 +9,7 @@ const VALID_PLATFORMS = new Set<Platform>(Object.values(Platform));
 
 export async function POST(req: Request) {
   const ctx = await resolveOrgId();
-  if (!ctx) return NextResponse.json({ error: "no_tenant" }, { status: 400 });
+  if (!ctx) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const limited = await rateLimit(`wizard-launch:${ctx.orgId}`, { limit: 12, windowSec: 3600 });
   if (!limited.ok) {

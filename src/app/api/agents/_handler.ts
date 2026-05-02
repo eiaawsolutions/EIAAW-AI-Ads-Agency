@@ -6,18 +6,19 @@ import { rateLimit } from "@/lib/rate-limit";
 import { resolveOrgId } from "@/lib/resolve-org";
 
 /**
- * Shared agent-route handler. Resolves the current user → their primary org
- * (auto-provisioning a personal org on first authed request), enforces rate
- * limit + daily cost cap, then dispatches the agent.
+ * Shared agent-route handler. Resolves the current user → their primary org,
+ * enforces rate limit + daily cost cap, then dispatches the agent.
  *
- * Unauthenticated calls in development land on the demo org so the wizard
- * works without sign-in. The demo org has the STARTER cost cap.
+ * Auth required: only users with an active subscription (membership +
+ * Subscription.status IN [TRIALING, ACTIVE]) reach an agent. Unauthed or
+ * subscription-less callers get 401. The previous demo-org fallback was
+ * removed as part of the strict-checkout invariant.
  */
 export async function handleAgentPost(kind: AgentKind, req: Request) {
   const input = await req.json().catch(() => ({}));
   const ctx = await resolveOrgId();
   if (!ctx) {
-    return NextResponse.json({ ok: false, error: "No organization context" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
   const { orgId, userId } = ctx;
 

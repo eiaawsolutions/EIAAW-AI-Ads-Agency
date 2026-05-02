@@ -1,32 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { LogoWordmark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 
-export default function SignInPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+const ERROR_MESSAGES: Record<string, string> = {
+  no_account: "We couldn't find an account for that email. Start a 14-day trial to create one.",
+  no_subscription: "Your subscription is inactive. Renew or start a new trial to access your workspace.",
+  AccessDenied: "Sign-in was denied. If you just paid, the webhook may still be processing — try again in a few seconds.",
+  Configuration: "Sign-in is temporarily unavailable. Please try again or contact support.",
+  Verification: "Verification link expired. Please sign in again.",
+};
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const res = await signIn("credentials", { email, redirect: false });
-    setLoading(false);
-    if (res?.error) {
-      toast.error(res.error);
-      return;
-    }
-    toast.success("Signed in");
-    router.push("/dashboard");
-  }
+function SignInContent() {
+  const params = useSearchParams();
+  const error = params.get("error");
+  const message = error ? ERROR_MESSAGES[error] ?? "Sign-in failed. Please try again." : null;
 
   return (
     <main className="min-h-screen bg-dawn grid place-items-center px-6 relative overflow-hidden">
@@ -38,43 +30,38 @@ export default function SignInPage() {
 
         <h1 className="display text-3xl text-foreground">Sign in</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Welcome back. Any email works for the beta — in production this page uses Google OIDC and passwordless magic links.
+          Use the Google account tied to your subscription.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-10 space-y-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        {message && (
+          <div className="mt-6 rounded-md border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs text-amber-700">
+            {message}
           </div>
-          <Button type="submit" className="w-full" variant="secondary" disabled={loading}>
-            {loading ? "Signing in…" : "Continue with email"}
-          </Button>
-        </form>
+        )}
 
-        <div className="my-6 flex items-center gap-3">
-          <span className="h-px flex-1 bg-border" />
-          <span className="eyebrow">or</span>
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <Button variant="subtle" className="w-full" onClick={() => signIn("google")}>
+        <Button
+          variant="secondary"
+          className="mt-8 w-full"
+          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        >
           Continue with Google
         </Button>
 
         <p className="mt-8 text-xs text-muted-foreground text-center">
           New to EIAAW?{" "}
-          <Link href="/onboarding" className="text-foreground hover:underline">
-            Start a free trial
+          <Link href="/pricing" className="text-foreground hover:underline">
+            Start a 14-day trial
           </Link>
         </p>
       </div>
     </main>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInContent />
+    </Suspense>
   );
 }

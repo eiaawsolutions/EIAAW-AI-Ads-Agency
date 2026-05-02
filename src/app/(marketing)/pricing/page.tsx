@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { StartTrialButton } from "@/components/pricing/start-trial-button";
 
 const TIERS = [
   {
@@ -84,11 +85,16 @@ export default function PricingPage() {
                 {t.price !== "Custom" && <span className="text-xs text-muted-foreground">/ mo</span>}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{t.cap}</p>
-              <Button asChild className="mt-8 w-full" variant={t.featured ? "secondary" : "subtle"}>
-                <Link href={t.name === "Enterprise" ? "/enterprise" : "/onboarding"}>
-                  {t.name === "Enterprise" ? "Talk to sales" : "Start 14-day trial"}
-                </Link>
-              </Button>
+              {t.name === "Enterprise" ? (
+                <Button asChild className="mt-8 w-full" variant="subtle">
+                  <Link href="/enterprise">Talk to sales</Link>
+                </Button>
+              ) : (
+                <StartTrialButton
+                  plan={t.name === "Growth" ? "GROWTH" : "STARTER"}
+                  variant={t.featured ? "secondary" : "subtle"}
+                />
+              )}
               <ul className="mt-8 space-y-2.5">
                 {t.perks.map((p) => (
                   <li key={p} className="flex items-start gap-2 text-xs text-foreground/85">
