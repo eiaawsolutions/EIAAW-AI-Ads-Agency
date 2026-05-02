@@ -70,6 +70,11 @@ export const OPTIONAL_ENV_KEYS = [
   // Observability (Sentry off-by-default if unset)
   "SENTRY_DSN",
 
+  // Transactional email (Resend) — welcome email is best-effort; signup
+  // still works without it, sender just sees a console.warn in logs.
+  "RESEND_API_KEY",
+  "RESEND_FROM",
+
   // Ad platform OAuth credentials — each adapter falls back to stub mode
   // if its creds are missing.
   "META_APP_ID",

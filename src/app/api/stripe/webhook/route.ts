@@ -3,6 +3,8 @@ import type Stripe from "stripe";
 import { Plan, Role, SubscriptionStatus } from "@prisma/client";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { renderWelcomeEmail } from "@/lib/email-templates/welcome";
 
 /**
  * POST /api/stripe/webhook
@@ -172,6 +174,44 @@ async function onCheckoutCompleted(session: Stripe.Checkout.Session): Promise<vo
   });
 
   console.log(`[stripe.webhook] checkout.session.completed: provisioned ${email} on ${plan} (${status})`);
+
+  // Best-effort welcome email. Failure here MUST NOT block signup —
+  // we already provisioned the workspace + the user can sign in via
+  // /signin even without the email arriving.
+  try {
+    const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+    const discountAmount = session.total_details?.amount_discount ?? 0;
+    const hasDiscount = discountAmount > 0;
+    const discountLabel = hasDiscount
+      ? formatMoney(discountAmount, session.currency ?? "usd")
+      : null;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ads.eiaawsolutions.com";
+    const { subject, html } = renderWelcomeEmail({
+      email,
+      plan,
+      trialEnd,
+      hasDiscount,
+      discountLabel,
+      appUrl,
+    });
+    await sendEmail({ to: email, subject, html });
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    console.error(`[stripe.webhook] welcome email failed for ${email}: ${reason}`);
+  }
+}
+
+function formatMoney(minor: number, currency: string): string {
+  const major = minor / 100;
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      maximumFractionDigits: major < 1 ? 2 : 0,
+    }).format(major);
+  } catch {
+    return `${currency.toUpperCase()} ${major.toFixed(2)}`;
+  }
 }
 
 async function onSubscriptionUpserted(sub: Stripe.Subscription): Promise<void> {
