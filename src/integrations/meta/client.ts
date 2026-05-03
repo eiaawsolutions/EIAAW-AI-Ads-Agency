@@ -219,11 +219,18 @@ export class MetaClient {
         limit,
       },
     });
-    // Tasks may be missing on older app permissions; in that case fall back
-    // to returning everything and let the createCreative call surface a
-    // (#200) error with a meaningful user_msg if the user picks a page they
-    // don't have ADVERTISE rights on.
-    return res.data.filter((p) => !p.tasks || p.tasks.includes("ADVERTISE"));
+    // Prefer pages where the user holds the ADVERTISE task — those are the
+    // ones we know the user can run ads from. But if NO page has tasks
+    // populated (older app permission tiers, business-manager-managed pages,
+    // pages that came in via assigned roles instead of ownership), Meta
+    // sometimes returns tasks=[] or omits the field entirely. In that case
+    // the strict filter wipes the picker to empty and the operator hits a
+    // dead end. Fall back to "show everything" — if the operator picks a
+    // page they don't actually have rights on, createCreative returns
+    // (#200) with a clear user_msg and the wizard surfaces that instead.
+    const hasAdvertise = res.data.filter((p) => p.tasks?.includes("ADVERTISE"));
+    if (hasAdvertise.length > 0) return hasAdvertise;
+    return res.data;
   }
 
   // ── Pixels ────────────────────────────────────────────────────────
