@@ -249,6 +249,20 @@ export class MetaClient {
     return res.data.filter((p) => !p.is_unavailable);
   }
 
+  /**
+   * Create a fresh Meta Pixel on the given ad account.
+   *
+   * Returns the new Pixel id. The operator then needs to install the
+   * 1-line snippet `fbq('init', '<id>')` on their site to start receiving
+   * events — but the Pixel can be referenced as a promoted_object on an
+   * AdSet immediately, even before any event has fired. Meta will simply
+   * have nothing to optimize against until events arrive.
+   */
+  async createPixel(adAccountId: string, name: string): Promise<{ id: string }> {
+    const id = this.qualifiedAccountId(adAccountId);
+    return this.request<{ id: string }>("POST", `/${id}/adspixels`, { body: { name } });
+  }
+
   // ── Image upload ──────────────────────────────────────────────────
   // POST /act_X/adimages with multipart/form-data — returns image_hash
   // which is what creative.object_story_spec.link_data.image_hash refers

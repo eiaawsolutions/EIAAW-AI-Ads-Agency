@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Image as ImageIcon, Loader2, RefreshCw, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Image as ImageIcon, Loader2, Plus, RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ export function StepCreative() {
     objective,
     platforms,
     domain,
+    brandName,
     creative,
     update,
     setStep,
@@ -50,6 +51,12 @@ export function StepCreative() {
   const [pagesError, setPagesError] = useState<{ msg: string; reconnect?: boolean } | null>(null);
   const [pixelsError, setPixelsError] = useState<{ msg: string; reconnect?: boolean } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [creatingPixel, setCreatingPixel] = useState(false);
+  // After "Create Pixel for me" succeeds we surface the install snippet so the
+  // operator can copy-paste it into their site's <head>. Cleared when they
+  // pick a different pixel or refresh the list.
+  const [newPixelSnippet, setNewPixelSnippet] = useState<{ id: string; snippet: string } | null>(null);
+  const [snippetCopied, setSnippetCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   function setCreative(patch: Partial<typeof creative>) {
@@ -96,6 +103,48 @@ export function StepCreative() {
       setPixelsError({ msg: err instanceof Error ? err.message : "network" });
     } finally {
       setLoadingPixels(false);
+    }
+  }
+
+  async function createPixel() {
+    setCreatingPixel(true);
+    setPixelsError(null);
+    try {
+      const res = await fetch("/api/meta/pixels", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: brandName ? `${brandName} Pixel` : "EIAAW Pixel" }),
+      });
+      const json = (await res.json()) as {
+        ok: boolean;
+        pixel?: MetaPixel;
+        installSnippet?: string;
+        error?: string;
+      };
+      if (!json.ok || !json.pixel || !json.installSnippet) {
+        toast.error(json.error ?? "Pixel creation failed");
+        return;
+      }
+      // Add the new pixel to the list and auto-select it.
+      setPixels((prev) => [json.pixel as MetaPixel, ...prev]);
+      setCreative({ metaPixelId: json.pixel.id, metaPixelName: json.pixel.name });
+      setNewPixelSnippet({ id: json.pixel.id, snippet: json.installSnippet });
+      toast.success(`Pixel "${json.pixel.name}" created. Install the snippet below to start tracking.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setCreatingPixel(false);
+    }
+  }
+
+  async function copySnippet() {
+    if (!newPixelSnippet) return;
+    try {
+      await navigator.clipboard.writeText(newPixelSnippet.snippet);
+      setSnippetCopied(true);
+      setTimeout(() => setSnippetCopied(false), 2500);
+    } catch {
+      toast.error("Couldn't copy — select the snippet manually and copy.");
     }
   }
 
@@ -416,15 +465,28 @@ export function StepCreative() {
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading Pixels
           </div>
         ) : pixels.length === 0 ? (
-          <div className="text-xs text-muted-foreground">
-            No Pixels installed on this ad account. {requiresPixel ? (
-              <span className="text-coral-600">
-                {" "}You must install a Pixel before launching {objective} campaigns —
-                <a className="underline ml-1" href="https://www.facebook.com/business/help/952192354843755" target="_blank" rel="noreferrer">
-                  install guide ↗
-                </a>
-              </span>
-            ) : null}
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+            <p className="text-xs text-amber-800">
+              No Pixels installed on this ad account.
+              {requiresPixel
+                ? ` ${objective} requires a Pixel for conversion optimization.`
+                : " A Pixel is recommended for better targeting."}
+            </p>
+            <p className="text-2xs text-amber-700/90 leading-relaxed">
+              We can create one for you and give you the install snippet — your campaign can launch
+              now and start collecting events the moment you paste it into your site.
+            </p>
+            <Button variant="secondary" size="sm" onClick={createPixel} disabled={creatingPixel}>
+              {creatingPixel ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Creating Pixel
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3.5 w-3.5" /> Create Pixel for me
+                </>
+              )}
+            </Button>
           </div>
         ) : (
           <select
@@ -444,6 +506,39 @@ export function StepCreative() {
               </option>
             ))}
           </select>
+        )}
+
+        {newPixelSnippet && (
+          <div className="mt-2 rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-emerald-800">
+                Pixel created · ID {newPixelSnippet.id}
+              </p>
+              <button
+                type="button"
+                onClick={copySnippet}
+                className="inline-flex items-center gap-1 text-2xs text-emerald-700 hover:text-emerald-900"
+              >
+                {snippetCopied ? (
+                  <>
+                    <Check className="h-3 w-3" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" /> Copy snippet
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="text-2xs text-emerald-700/90 leading-relaxed">
+              Paste this into the <code className="mono text-2xs bg-emerald-100/40 px-1 rounded">&lt;head&gt;</code>
+              {" "}of every page on your site. Events start flowing immediately. Your campaign can
+              launch now — Meta will optimize against events as soon as they arrive.
+            </p>
+            <pre className="mono text-2xs bg-background/60 border border-emerald-500/30 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all max-h-48">
+              {newPixelSnippet.snippet}
+            </pre>
+          </div>
         )}
       </div>
 
