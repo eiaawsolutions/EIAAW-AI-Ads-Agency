@@ -6,7 +6,10 @@ import { MetaClient, MetaOAuthClient } from "@/integrations/meta";
 import { db } from "@/lib/db";
 
 /**
- * GET /api/meta/_debug
+ * GET /api/meta/debug
+ *
+ * (Originally /api/meta/_debug — renamed because Next.js ignores any
+ * route segment beginning with `_` at build time and returns 404.)
  *
  * Diagnostic endpoint for Meta integration. Reports:
  *   - Stored Integration scopes (what we wrote to DB)
