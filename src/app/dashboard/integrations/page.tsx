@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PlatformChip } from "@/components/platform/chip";
 import { DisconnectButton } from "@/components/integrations/disconnect-button";
 import { MetaSyncButton } from "@/components/integrations/meta-sync-button";
+import { MetaMcpPanel } from "@/components/integrations/meta-mcp-panel";
 import { allPlatforms, getAdapter } from "@/integrations/registry";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
@@ -155,6 +156,8 @@ export default async function IntegrationsPage({
             );
           })}
         </div>
+
+        <MetaMcpPanel metaConnected={metaConnected} />
 
         <div className="rounded-lg border border-border overflow-hidden bg-card">
           <div className="px-5 py-3 hairline-b">
