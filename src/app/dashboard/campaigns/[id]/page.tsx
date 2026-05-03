@@ -12,6 +12,7 @@ import { RetryPlatformButton } from "@/components/campaigns/retry-platform-butto
 import { ActivatePlatformButton } from "@/components/campaigns/activate-platform-button";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
+import { EXCLUDE_SYNTHETIC } from "@/lib/campaign-filters";
 
 export const metadata = { title: "Campaign" };
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   const ctx = await getActiveOrgOrRedirect();
 
   const campaign = await db.campaign.findFirst({
-    where: { id, orgId: ctx.orgId },
+    where: { id, orgId: ctx.orgId, ...EXCLUDE_SYNTHETIC },
     include: { adSets: { orderBy: { platform: "asc" } } },
   });
   if (!campaign) notFound();

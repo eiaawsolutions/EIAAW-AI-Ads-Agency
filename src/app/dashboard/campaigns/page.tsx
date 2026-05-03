@@ -6,6 +6,7 @@ import { PlatformChip } from "@/components/platform/chip";
 import { Plus } from "lucide-react";
 import { getActiveOrgOrRedirect } from "@/lib/active-org";
 import { db } from "@/lib/db";
+import { EXCLUDE_SYNTHETIC } from "@/lib/campaign-filters";
 
 export const metadata = { title: "Campaigns" };
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function CampaignsPage() {
   start30.setDate(start30.getDate() - 30);
 
   const campaigns = await db.campaign.findMany({
-    where: { orgId: ctx.orgId },
+    where: { orgId: ctx.orgId, ...EXCLUDE_SYNTHETIC },
     orderBy: { updatedAt: "desc" },
     include: {
       metrics: {
