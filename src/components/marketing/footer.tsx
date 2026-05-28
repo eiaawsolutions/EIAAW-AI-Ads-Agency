@@ -38,7 +38,7 @@ export function MarketingFooter() {
       </div>
       <div className="hairline-t">
         <div className="container flex items-center justify-between py-5 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} EIAAW Solutions</span>
+          <span>© {new Date().getFullYear()} EIAAW SOLUTIONS · SSM Reg. No. 202603133419 (CT0164540-H)</span>
           <div className="flex items-center gap-2">
             <span className="live-dot" />
             <span className="mono">All systems operational</span>
