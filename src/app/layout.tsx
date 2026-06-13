@@ -21,10 +21,22 @@ export const metadata: Metadata = {
   },
   description:
     "A multi-agent AI organization that plans, launches, optimizes, and scales paid campaigns across Meta, Google, TikTok, LinkedIn, Microsoft, YouTube, and Apple Ads.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ??
+      (process.env.NODE_ENV === "production"
+        ? "https://ads.eiaawsolutions.com"
+        : "http://localhost:3000"),
+  ),
+  // Self-referential canonical (resolved against metadataBase) so crawls of
+  // alternate hosts/paths fold into the production apex instead of creating
+  // duplicate indexable pages. Child routes override via their own metadata.
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "EIAAW — Autonomous AI Ads Agency",
     description: "Predictive, multi-platform, experiment-native paid advertising.",
+    url: "/",
     type: "website",
   },
 };
